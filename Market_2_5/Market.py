@@ -104,13 +104,13 @@ class Market_ACP:
 
         sorted_data = self.read_data_ch()
 
-        grouped_df = sorted_data.groupby('issued_at')['total_amount'].sum().reset_index()
+        grouped_df = sorted_data.groupby('issued_at')['position_count'].sum().reset_index()
         self.canvass.append(Canvas(title=f'Объем ценового рынка по Чекам по коду товара: {self.code}',
                                  showlegend=False,
                                  x_title='Дата',
                                  y_title='Цена',
                                  plots=[BarPlot(x=grouped_df['issued_at'].values,
-                                                y=grouped_df['total_amount'].values
+                                                y=grouped_df['position_count'].values
                                                 )]
                                  )
                           )
@@ -125,13 +125,13 @@ class Market_ACP:
 
         # Выборка
         sorted_data = self.read_data_dt()
-        grouped_df = sorted_data.groupby('dt_date')['ТС/кг, бел руб'].sum().reset_index()
+        grouped_df = sorted_data.groupby('dt_date')['g38netweightquantity'].sum().reset_index()
         self.canvass.append(Canvas(title=f'Объем количественного рынка по ДТ по коду товара: {self.code}',
                                    showlegend=False,
                                    x_title='Дата',
                                    y_title='Цена',
                                    plots=[BarPlot(x=grouped_df['dt_date'].values,
-                                                  y=grouped_df['ТС/кг, бел руб'].values
+                                                  y=grouped_df['g38netweightquantity'].values
                                                   )]
                                    )
                             )
