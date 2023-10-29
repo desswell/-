@@ -1,3 +1,6 @@
+import pandas as pd
+
+
 class PricesESF:
     """
     :code_assign: service
@@ -6,7 +9,12 @@ class PricesESF:
     import pandas as pd
     """
 
-    def __init__(self, dt_data, first_esf_data, esf_data, last_esf_data, check_data):
+    def __init__(self,
+                 dt_data: pd.DataFrame = None,
+                 first_esf_data: pd.DataFrame = None,
+                 esf_data: pd.DataFrame = None,
+                 last_esf_data: pd.DataFrame = None,
+                 check_data: pd.DataFrame = None):
         """
         :param pd.DateFrame dt_data: датасет DT
         :param pd.DateFrame first_esf_data: связанных с DT ЭСЧФ
@@ -72,6 +80,8 @@ class PricesESF:
         grouped = df.groupby(['year', 'month']).apply(
             lambda x: (x['total_sales']).sum() / x['g38netweightquantity'].sum()).reset_index()
         grouped.columns = ['year', 'month', 'weighted_average_price']
+        grouped_weight = df.groupby(['year', 'month'])['g38netweightquantity'].sum().reset_index()
+        grouped_weight = grouped_weight.sort_values(['year', 'month'])
 
         # Возвращаем результаты в виде массивов
         years = grouped['year'].tolist()
@@ -82,7 +92,7 @@ class PricesESF:
 
         dt_dates = self.dates_to_months(years, months)
 
-        return dt_dates, dt_means
+        return dt_dates, dt_means, grouped_weight['g38netweightquantity'].tolist()
 
     def get_first_esf_means_daily(self):
         """
@@ -443,7 +453,8 @@ class ACPLinearRegression:
             x_range = list(range(max(x) + 1, max(x) + 1 + self.step))
             x_pred = np.array(x_range).reshape((-1, 1))
             y_pred = np.array([intercept + coefficient * i for i in x_range])
-            plots.append(LinePlot(x=np.append(x_reshaped, x_pred), y=np.append(xy_pred, y_pred), names=['Тренд ' + name]))
+            plots.append(
+                LinePlot(x=np.append(x_reshaped, x_pred), y=np.append(xy_pred, y_pred), names=['Тренд ' + name]))
             plots.append(Scatter2DPlot(x=x_reshaped, y=xy_pred, names=['Тренд ' + name],
                                        marker=[dict(color="black")]
                                        # text=text нужно добавить объем импорта
@@ -509,21 +520,21 @@ def lineplot_esf(
         dataset_check_filtered['general_date_transaction'])
     dataset_check_filtered['issued_at'] = pd.to_datetime(dataset_check_filtered['issued_at'])
 
-    dt_data = dataset_dt_filtered[
+    dt_data = dataset_dt_filtered.loc[
         (dataset_dt_filtered['dt_date'] >= start_date) & (dataset_dt_filtered['dt_date'] <= end_date)]
-    first_esf_data = dataset_dt_filtered[(dataset_dt_filtered['general_date_transaction'] >= start_date) & (
-                dataset_dt_filtered['general_date_transaction'] <= end_date)]
-    esf_data = dataset_esf_filtered[(dataset_esf_filtered['general_date_transaction'] >= start_date) & (
-                dataset_esf_filtered['general_date_transaction'] <= end_date)]
-    last_esf_data = dataset_check_filtered[(dataset_check_filtered['general_date_transaction'] >= start_date) & (
-                dataset_check_filtered['general_date_transaction'] <= end_date)]
-    check_data = dataset_check_filtered[
+    first_esf_data = dataset_dt_filtered.loc[(dataset_dt_filtered['general_date_transaction'] >= start_date) & (
+            dataset_dt_filtered['general_date_transaction'] <= end_date)]
+    esf_data = dataset_esf_filtered.loc[(dataset_esf_filtered['general_date_transaction'] >= start_date) & (
+            dataset_esf_filtered['general_date_transaction'] <= end_date)]
+    last_esf_data = dataset_check_filtered.loc[(dataset_check_filtered['general_date_transaction'] >= start_date) & (
+            dataset_check_filtered['general_date_transaction'] <= end_date)]
+    check_data = dataset_check_filtered.loc[
         (dataset_check_filtered['issued_at'] >= start_date) & (dataset_check_filtered['issued_at'] <= end_date)]
 
     pe = PricesESF(dt_data, first_esf_data, esf_data, last_esf_data, check_data)
-
+    weight = ['ДТ']
     if monthly:
-        sorted_dt_dates, dt_means = pe.get_dt_means_monthly()
+        sorted_dt_dates, dt_means, weight = pe.get_dt_means_monthly()
         sorted_first_esf_dates, first_esf_means = pe.get_first_esf_means_monthly()
         sorted_esf_dates, esf_means = pe.get_esf_means_monthly()
         sorted_last_esf_dates, last_esf_means = pe.get_last_esf_means_monthly()
@@ -540,13 +551,13 @@ def lineplot_esf(
     y_list = [np.array(arr) for arr in [dt_means, first_esf_means, esf_means, last_esf_means, check_means]]
     names = ['ДТ', 'ЭСЧФ1', 'Все ЭСЧФ', 'Последняя ЭСЧФ', 'Чек']
     plots = []
-    
+
     if linear_regression:
         lr = ACPLinearRegression(x_list, y_list, step_regression, names)
         plots = lr.train_regression()
     for x, y, name in zip(x_list, y_list, names):
         plots.append(LinePlot(x=x, y=y, names=[name]))
-        plots.append(Scatter2DPlot(x=x, y=y, names=[name], marker=[dict(color="black")]))
+        plots.append(Scatter2DPlot(x=x, y=y, names=weight, marker=[dict(color="black")]))
 
     gui_dict['plot'].append(
         Window(

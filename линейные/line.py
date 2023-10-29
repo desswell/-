@@ -295,7 +295,9 @@ class Chain:
 def lineplot_acp(
         dataset: pd.DataFrame,
         input_code: str = '',
-        size: Union[int] = 3
+        size: Union[int] = 3,
+        time_dt: str = '',
+        time_check: str = ''
 ):
     """
     :code_assign: users
@@ -306,6 +308,8 @@ def lineplot_acp(
     :param_block pd.DataFrame dataset: датасет
     :param str input_code: код для цепочки продаж
     :param Union[int] size: размер цепочки
+    :param str time_dt: дата ДТ
+    :param str time_check: дата чека
     :returns: gui_dict, error
     :rtype: dict, str
     :semrtype: ,
@@ -315,10 +319,11 @@ def lineplot_acp(
     CH = Chain(dataset)
     x_points_arr, y_points_arr = CH.get_average_chains(int(input_code), int(size))
     plots = []
-    text = [["DT"] + ["ETN" + str(i) for i in range(1, size + 1)] + ["Check"]]
+    text = [[f"DT {time_dt}"] + ["ETN" + str(i) for i in range(1, size + 1)] + [f"Check {time_check}"]]
     for x, y in zip(x_points_arr, y_points_arr):
         plots.append(LinePlot(x=np.array(x), y=y, names=[f'Месяц: {"-".join(map(str, x))}']))
-        plots.append(Scatter2DPlot(x=np.array(x), y=y, names=[f'Месяц: {"-".join(map(str, x))}'], text=text))
+        plots.append(Scatter2DPlot(x=np.array(x), y=y, names=[f'Месяц: {"-".join(map(str, x))}'], text=text,
+                                   marker=[dict(color="black")]))
     gui_dict['plot'].append(
         Window(
             window_title='Цепочка продаж - линейный график',

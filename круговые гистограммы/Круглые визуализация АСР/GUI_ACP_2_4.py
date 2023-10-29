@@ -3,20 +3,27 @@
         {
             'hint':
                 {
-                    'rus': 'Визуализация АСР',
+                    'rus': 'Анализ импорта',
                 },
             'blocks': 'Process',
             'gui_name':
                 {
-                    'rus': 'Визуализация АСР',
+                    'rus': 'Анализ импорта',
                 },
             'in_params':
                 {
-                    'dataset':
+                    'dataset_import':
                         {
                             'gui_name':
                                 {
-                                    'rus': 'Датасет',
+                                    'rus': 'Датасет импорта',
+                                },
+                        },
+                    'dataset_dt':
+                        {
+                            'gui_name':
+                                {
+                                    'rus': 'Датасет деклараций',
                                 },
                         },
                     'input_code':
@@ -25,23 +32,68 @@
                                 {
                                     'rus': 'Товар',
                                 },
-                            'gui_type': 'select',
-                            'gui_select_values':
+                            'gui_type': 'input',
+                            'gui_default_values': 
                                 {
-                                    'rus': ['803901000', '803', '8039', '80390100',
-                                            '80390', '805501000', '805', '80550', '80550100',
-                                            '0702000001', '0702000002','0702000003', '0702000004',
-                                            '0702000005', '0702000006', '0702000007', '0702000009'
-                                            ]
-                                },
-                            'ds_values':
-                                {
-                                    'rus': ['803901000', '803', '8039', '80390100',
-                                            '80390', '805501000', '805', '80550', '80550100',
-                                            '0702000001', '0702000002','0702000003', '0702000004',
-                                            '0702000005', '0702000006', '0702000007', '0702000009'
-                                            ]
+                                    'rus': "803901000"
                                 }
+                        },
+                    'start_date':
+                        {
+                            'gui_name':
+                                {
+                                    'rus': 'Период: от',
+                                },
+                            'gui_type': 'input',
+                            'gui_type_value': 'string',
+                            'gui_default_values':
+                                {
+                                    'rus': '2021-01-01'
+                                }
+                        },
+                    'end_date':
+                        {
+                            'gui_name':
+                                {
+                                    'rus': 'Период: до',
+                                },
+                            'gui_type': 'input',
+                            'gui_type_value': 'string',
+                            'gui_default_values':
+                                {
+                                    'rus': '2023-12-31'
+                                }
+                        },
+                    'linear_regression':
+                        {
+                            'gui_name':
+                                {
+                                    'rus': 'Линейная регрессия'
+                                },
+                            'gui_type': 'checkbox',
+                            'gui_default_values':
+                                {
+                                    'rus': False
+                                },
+                        },
+                    'step_regression':
+                        {
+                            'gui_name':
+                                {
+                                    'rus': 'Шаг регрессии'
+                                },
+                            'gui_type': 'input',
+                            'gui_default_values':
+                                {
+                                    'rus': 1
+                                },
+                            'gui_visible':
+                                {
+                                    'linear_regression':
+                                        {
+                                            1: True,
+                                        },
+                                },
                         },
                 },
         },

@@ -47,7 +47,31 @@
                                 {
                                     'rus': 2
                                 },
-                },
+                        },
+                        'time_start':
+                        {
+                            'gui_name':
+                                {
+                                    'rus': 'Дата ДТ (YYYY-MM-DD)',
+                                },
+                            'gui_type': 'input',
+                            'gui_default_values':
+                                {
+                                    'rus': ''
+                                },
+                        },
+                    'time_end':
+                        {
+                            'gui_name':
+                                {
+                                    'rus': 'Дата Чека (YYYY-MM-DD)',
+                                },
+                            'gui_type': 'input',
+                            'gui_default_values':
+                                {
+                                    'rus': ''
+                                },
+                        },
         },
 }
 }
