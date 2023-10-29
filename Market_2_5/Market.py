@@ -28,6 +28,7 @@ class Market_ACP:
         Функция чтения файла по ДТ
         """
         self.data['dt_date'] = pd.to_datetime(self.data['dt_date'])
+        self.data['total_sum'] = self.data['g38netweightquantity'] * self.data['ТС/кг, бел руб']
         # Convert object type to datetime
         time_start = pd.to_datetime(self.time_start)
         time_end = pd.to_datetime(self.time_end)
@@ -46,7 +47,7 @@ class Market_ACP:
         time_start = pd.to_datetime(self.time_start)
         time_end = pd.to_datetime(self.time_end)
         data = self.data[(self.data['issued_at'] >= time_start) & (self.data['issued_at'] <= time_end)]
-        data_nw = data[(data['gtin'] == self.code) & (data['unp'] == self.company)]
+        data_nw = data[(data['unp'] == self.company)]
         return data_nw
 
 
@@ -56,24 +57,27 @@ class Market_ACP:
     2.5 Показ объёма в количественном и стоимостном выражении, ориентируясь отдельно на
      ДТ и на чеки - столбч. диаграмма 
     """
-    def show_sells_by_dt(self):
+    def show_dt(self):
 
         sorted_data = self.read_data_dt()
 
-        grouped_df = sorted_data.groupby('dt_date')['ТС/кг, бел руб'].sum().reset_index()
-        self.canvass.append(Canvas(title=f'Объем ценового рынка по ДТ по коду товара: {self.code}',
+        grouped_df_sum = sorted_data.groupby('dt_date')['total_sum'].sum().reset_index()
+        grouped_df_count = sorted_data.groupby('dt_date')['g38netweightquantity'].sum().reset_index()
+        self.canvass.append(Canvas(title=f'Объем рынка по ДТ по коду товара: {self.code}, по УНП компании: {self.company}',
                                    showlegend=False,
                                    x_title='Дата',
-                                   y_title='Цена',
-                                   plots=[BarPlot(x=grouped_df['dt_date'].values,
-                                                  y=grouped_df['ТС/кг, бел руб'].values
+                                   y_title='Cумма по ДТ в бел. руб.',
+                                   plots=[BarPlot(x=grouped_df_sum['dt_date'].values,
+                                                  y=grouped_df_sum['total_sum'].values),
+                                          BarPlot(x=grouped_df_count['dt_date'].values,
+                                                  y=grouped_df_count['g38netweightquantity'].values
                                                   )]
                                    )
                             )
 
 
 
-    def show_sells_by_check(self):
+    def show_check(self):
         """
         Функция показа объема рынка в стоимостном выражении по Чекам
         """
@@ -81,57 +85,16 @@ class Market_ACP:
         #Получение выборки
         sorted_data = self.read_data_ch()
 
-        grouped_df = sorted_data.groupby('issued_at')['total_amount'].sum().reset_index()
-        self.canvass.append(Canvas(title=f'Объем ценового рынка по Чекам по коду товара: {self.code}',
+        grouped_df_sum = sorted_data.groupby('issued_at')['total_amount'].sum().reset_index()
+        grouped_df_count = sorted_data.groupby('issued_at')['position_count'].sum().reset_index()
+        self.canvass.append(Canvas(title=f'Объем рынка по Чекам по коду товара: {self.code}, по УНП компании: {self.company}',
                                    showlegend=False,
                                    x_title='Дата',
-                                   y_title='Цена',
+                                   y_title='Сумма в бел. руб.',
                                    plots=[BarPlot(x=grouped_df['issued_at'].values,
-                                                  y=grouped_df['total_amount'].values
-                                                  )]
-                                   )
-                            )
-
-
-
-
-
-
-    def show_quantity_by_check(self):
-        """
-        Функция показа объема рынка в количиественном выражении по Чекам
-        """
-
-        sorted_data = self.read_data_ch()
-
-        grouped_df = sorted_data.groupby('issued_at')['position_count'].sum().reset_index()
-        self.canvass.append(Canvas(title=f'Объем ценового рынка по Чекам по коду товара: {self.code}',
-                                 showlegend=False,
-                                 x_title='Дата',
-                                 y_title='Цена',
-                                 plots=[BarPlot(x=grouped_df['issued_at'].values,
-                                                y=grouped_df['position_count'].values
-                                                )]
-                                 )
-                          )
-
-
-
-
-    def show_quantity_by_dt(self):
-        """
-        Функция показа объема рынка в количиественном выражении по ДТ
-        """
-
-        # Выборка
-        sorted_data = self.read_data_dt()
-        grouped_df = sorted_data.groupby('dt_date')['g38netweightquantity'].sum().reset_index()
-        self.canvass.append(Canvas(title=f'Объем количественного рынка по ДТ по коду товара: {self.code}',
-                                   showlegend=False,
-                                   x_title='Дата',
-                                   y_title='Цена',
-                                   plots=[BarPlot(x=grouped_df['dt_date'].values,
-                                                  y=grouped_df['g38netweightquantity'].values
+                                                  y=grouped_df['total_amount'].values),
+                                          BarPlot(x=grouped_df['issued_at'].values,
+                                                  y=grouped_df['position_count'].values
                                                   )]
                                    )
                             )
@@ -169,13 +132,9 @@ def market_acp(dataset: pd.DataFrame,
     gui_dict = init_gui_dict()
     error = ""
     if selected_plot == '1':
-        market.show_sells_by_dt()
-    elif selected_plot == '2':
-        market.show_quantity_by_dt()
-    elif selected_plot == '3':
-        market.show_sells_by_check()
+        market.show_dt()
     else:
-        market.show_quantity_by_check()
+        market.show_check()
     gui_dict['plot'].append(
         Window(
             window_title='Столбчатые диаграммы',
