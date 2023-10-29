@@ -1,7 +1,4 @@
-import numpy as np
-
-
-class PrintGraphByCode:
+class PrintGraphByCode_visualise:
     """
     :code_assign: service
     :code_type: отрисовка PiePlot и HistPlot
@@ -32,7 +29,7 @@ class PrintGraphByCode:
             = 'OTHER+NAN'
 
 
-def diagram_acp(
+def diagram_visualise_acp(
         dataset: pd.DataFrame,
         input_code: str = '',
 ):

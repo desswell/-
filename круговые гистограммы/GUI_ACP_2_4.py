@@ -1,14 +1,14 @@
 {
-    'diagram_acp':
+    'diagram_visualise_acp':
         {
             'hint':
                 {
-                    'rus': 'Лидеры рынка',
+                    'rus': 'Визуализация АСР',
                 },
             'blocks': 'Process',
             'gui_name':
                 {
-                    'rus': 'Лидеры рынка',
+                    'rus': 'Визуализация АСР',
                 },
             'in_params':
                 {
