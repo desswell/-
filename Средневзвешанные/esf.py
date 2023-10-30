@@ -397,12 +397,9 @@ class PricesESF:
         Функция преобразования дат в месяцы
         """
         # Поиск минимального года
-        min_year = years[0]
-        for i in range(len(years)):
-            if years[i] < min_year:
-                min_year = years[i]
+        min_year = min(years)
 
-        # Замена значений дней в соответствии с годом
+        # Замена значений месяцев в соответствии с годом
         for i in range(len(months)):
             if years[i] > min_year:
                 months[i] = months[i] + 12 * (years[i] - min_year)
@@ -482,7 +479,7 @@ def lineplot_esf(
         dataset_check: pd.DataFrame,
         monthly: bool = False,
         linear_regression: bool = False,
-        product_code: int = 803901000,
+        product_code: str = "",
         start_date: str = '',
         end_date: str = '',
         step_regression: int = 1,
@@ -499,7 +496,7 @@ def lineplot_esf(
     :param_block pd.DataFrame dataset_check: датасет CHECK и связанных ЭСЧФ
     :param bool monthly: флаг разбивки на месяца
     :param bool linear_regression: флаг для линейной регрессии
-    :param int product_code: код товара
+    :param str product_code: код товара
     :param str start_date: дата начала
     :param str end_date: дата конца
     :param int step_regression: шаг регрессии
@@ -512,9 +509,9 @@ def lineplot_esf(
     pd.options.mode.chained_assignment = None
 
     # Фильтрация датасета по коду товара
-    dataset_dt_filtered = dataset_dt[(dataset_dt['roster_item_code'] == product_code)]
-    dataset_esf_filtered = dataset_esf[(dataset_esf['roster_item_code'] == product_code)]
-    dataset_check_filtered = dataset_check[(dataset_check['roster_item_code'] == product_code)]
+    dataset_dt_filtered = dataset_dt[(dataset_dt['roster_item_code'] == int(product_code))]
+    dataset_esf_filtered = dataset_esf[(dataset_esf['roster_item_code'] == int(product_code))]
+    dataset_check_filtered = dataset_check[(dataset_check['roster_item_code'] == int(product_code))]
 
     if dataset_dt_filtered.empty or dataset_esf_filtered.empty or dataset_check_filtered.empty:
         raise Exception(f'Нет записей по коду {product_code}')
@@ -563,7 +560,7 @@ def lineplot_esf(
     plots = []
 
     if linear_regression and monthly:
-        lr = ACPLinearRegression(x_list, y_list, step_regression, names, weights)
+        lr = ACPLinearRegression(x_list, y_list, step_regression, names, [weights])
         plots = lr.train_regression()
     for x, y, name in zip(x_list, y_list, names):
         plots.append(LinePlot(x=x, y=y, names=[name]))

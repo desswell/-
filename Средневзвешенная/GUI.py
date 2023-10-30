@@ -3,12 +3,12 @@
         {
             'hint':
                 {
-                    'rus': 'Визулизация прослеживаемые товары (схема 6)',
+                    'rus': 'Аналитика по прослеживаемым товарам',
                 },
             'blocks': 'Process',
             'gui_name':
                 {
-                    'rus': 'Визулизация прослеживаемые товары (схема 6)',
+                    'rus': 'Аналитика по прослеживаемым товарам',
                 },
             'in_params':
                 {
@@ -25,15 +25,43 @@
                                 {
                                     'rus': 'Категория',
                                 },
-                            'gui_type': 'select',
-                            'gui_select_values':
+                            'gui_type': 'input',
+                            'gui_default_values': 
                                 {
-                                    'rus': ['Холодильники', 'Шины']
-                                },
-                            'ds_values':
-                                {
-                                    'rus': ["fridges", 'tires']
+                                    'rus': "8418102001"
                                 }
+                        },
+                    'chain_flag':
+                        {
+                            'gui_name':
+                                {
+                                    'rus': 'Построение цепочек'
+                                },
+                            'gui_type': 'checkbox',
+                            'gui_default_values':
+                                {
+                                    'rus': False
+                                },
+                        },
+                    'size_chain':
+                        {
+                            'gui_name':
+                                {
+                                    'rus': 'Размерность цепочки',
+                                },
+                            'gui_type': 'input',
+                            'gui_type_value': 'number',
+                            'gui_default_values':
+                                {
+                                    'rus': 2
+                                },
+                            'gui_visible':
+                                {
+                                    'chain_flag':
+                                        {
+                                            1: True,
+                                        },
+                                },
                         },
                 },
         },

@@ -35,9 +35,9 @@ class PrintGraphByCode_visulise:
 def diagram_visualise_acp(
         dataset_import: pd.DataFrame,
         dataset_dt: pd.DataFrame,
-        input_code: str = '',
-        start_date: str = '',
-        end_date: str = '',
+        input_code: str = '803901000',
+        start_date: str = '2021-01-01',
+        end_date: str = '2023-12-31',
         linear_regression: bool = False,
         step_regression: int = 1
 ):
@@ -68,12 +68,11 @@ def diagram_visualise_acp(
     date_end = '-'.join(map(str, end_date_wo_day[:2]))
     date_start = pd.to_datetime(date_start)
     date_end = pd.to_datetime(date_end)
-
-    selectedData = dataset_import.loc[(dataset_import['g331goodstnvedcode'].astype(str) == input_code) |
+    selectedData = dataset_import.loc[(dataset_import['g331goodstnvedcode'].astype(str) == input_code.lstrip('0')) |
                                       (dataset_import['type'].astype(str) == input_code)]
-    selectedData['import_date'] = pd.to_datetime(selectedData['import_date'])
     if selectedData.empty:
         raise Exception(f'Товаров по коду или типу выбранного товара нет')
+    selectedData['import_date'] = pd.to_datetime(selectedData['import_date'])
     selected_data = selectedData.loc[
         (selectedData['import_date'] >= date_start) & (selectedData['import_date'] <= date_end)]
     if selected_data.empty:
@@ -114,7 +113,7 @@ def diagram_visualise_acp(
             ).to_dict())
 
         pd.options.mode.chained_assignment = None
-        dataset_dt_filtered = dataset_dt[(dataset_dt['g331goodstnvedcode'] == int(input_code))]
+        dataset_dt_filtered = dataset_dt[(dataset_dt['roster_item_code'] == int(input_code.lstrip('0')))]
 
         if dataset_dt_filtered.empty:
             raise Exception(f'Нет записей по коду {input_code} в декларациях на товарах')
@@ -154,7 +153,7 @@ def diagram_visualise_acp(
         )
 
     else:
-        df = dataset
+        df = dataset_import
 
         df['weighted_cost'] = df['price'] * df['quantity']  # Взвешенная сумма
 

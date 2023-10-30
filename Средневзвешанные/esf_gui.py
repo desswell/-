@@ -85,7 +85,7 @@
                             'gui_type': 'input',
                             'gui_default_values':
                                 {
-                                    'rus': 803901000
+                                    'rus': "803901000"
                                 }
                         },
                     'start_date':
