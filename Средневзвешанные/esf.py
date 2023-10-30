@@ -424,17 +424,20 @@ class ACPLinearRegression:
                  x: list = [None],
                  y: list = [None],
                  step: int = 1,
-                 names: list = [None]
+                 names: list = [None],
+                 weights: list = []
                  ):
         """
         :param list y: list[np.array] координаты x
         :param int step: шаг регрессии
         :param list names: имена прямых
+        :param list weight: веса
         """
         self.x = x
         self.y = y
         self.step = step
         self.names = names
+        self.weights = weights
 
     def train_regression(self):
         """
@@ -443,25 +446,32 @@ class ACPLinearRegression:
         """
         plots = list()
 
-        for x, y, name in zip(self.x, self.y, self.names):
+        for x, y, name, weight in zip(self.x, self.y, self.names, self.weights):
             x_reshaped = np.array(x).reshape((-1, 1))
             model = LinearRegression()
+            model_weight = LinearRegression()
             model.fit(x_reshaped, y)
+            model_weight.fit(x_reshaped, np.array(weight))
             xy_pred = model.predict(x_reshaped)
             intercept = model.intercept_
             coefficient = model.coef_
+            intercept_weight = model_weight.intercept_
+            coefficient_weight = model_weight.coef_
             x_range = list(range(max(x) + 1, max(x) + 1 + self.step))
             x_pred = np.array(x_range).reshape((-1, 1))
             y_pred = np.array([intercept + coefficient * i for i in x_range])
+            y_pred_weight = np.array([intercept_weight + coefficient_weight * i for i in x_range])
+            weight = [f'Объем: {i // 1000} т' for i in weight]
+            weight_predicted = [f'Объем: {i // 1000} т' for i in y_pred_weight]
             plots.append(
                 LinePlot(x=np.append(x_reshaped, x_pred), y=np.append(xy_pred, y_pred), names=['Тренд ' + name]))
             plots.append(Scatter2DPlot(x=x_reshaped, y=xy_pred, names=['Тренд ' + name],
-                                       marker=[dict(color="black")]
-                                       # text=text нужно добавить объем импорта
+                                       marker=[dict(color="black")],
+                                       text=[weight],
                                        ))
             plots.append(Scatter2DPlot(x=x_pred, y=y_pred, names=['Тренд ' + name],
-                                       marker=[dict(color="red")]
-                                       # text=text ???
+                                       marker=[dict(color="red")],
+                                       text=[weight_predicted]
                                        ))
         return plots
 
@@ -532,9 +542,9 @@ def lineplot_esf(
         (dataset_check_filtered['issued_at'] >= start_date) & (dataset_check_filtered['issued_at'] <= end_date)]
 
     pe = PricesESF(dt_data, first_esf_data, esf_data, last_esf_data, check_data)
-    weight = ['ДТ']
+    weights = ['ДТ']
     if monthly:
-        sorted_dt_dates, dt_means, weight = pe.get_dt_means_monthly()
+        sorted_dt_dates, dt_means, weights = pe.get_dt_means_monthly()
         sorted_first_esf_dates, first_esf_means = pe.get_first_esf_means_monthly()
         sorted_esf_dates, esf_means = pe.get_esf_means_monthly()
         sorted_last_esf_dates, last_esf_means = pe.get_last_esf_means_monthly()
@@ -552,12 +562,12 @@ def lineplot_esf(
     names = ['ДТ', 'ЭСЧФ1', 'Все ЭСЧФ', 'Последняя ЭСЧФ', 'Чек']
     plots = []
 
-    if linear_regression:
-        lr = ACPLinearRegression(x_list, y_list, step_regression, names)
+    if linear_regression and monthly:
+        lr = ACPLinearRegression(x_list, y_list, step_regression, names, weights)
         plots = lr.train_regression()
     for x, y, name in zip(x_list, y_list, names):
         plots.append(LinePlot(x=x, y=y, names=[name]))
-        plots.append(Scatter2DPlot(x=x, y=y, names=weight, marker=[dict(color="black")]))
+        plots.append(Scatter2DPlot(x=x, y=y, names=[name], marker=[dict(color="black")], text=[weights]))
 
     gui_dict['plot'].append(
         Window(

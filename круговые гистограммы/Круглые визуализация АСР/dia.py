@@ -129,15 +129,14 @@ def diagram_visualise_acp(
 
         pe = PricesESF(dt_data=dt_data)
         sorted_dt_dates, dt_means, weight = pe.get_dt_means_monthly()
-        weight = [f'Объем: {i // 1000} т' for i in weight]
         x_list = [pd.array(sorted_dt_dates)]
         y_list = [pd.array(dt_means)]
         names = ['ДТ']
         plots = []
-
         if linear_regression:
-            lr = ACPLinearRegression(x_list, y_list, step_regression, names)
+            lr = ACPLinearRegression(x_list, y_list, step_regression, names, [weight])
             plots = lr.train_regression()
+        weight = [f'Объем: {i // 1000} т' for i in weight]
         for x, y in zip(x_list, y_list):
             plots.append(LinePlot(x=x, y=y, names=names))
             plots.append(Scatter2DPlot(x=x, y=y, names=names, text=[weight], marker=[dict(color="black")]))
