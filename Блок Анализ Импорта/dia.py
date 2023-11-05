@@ -1,6 +1,3 @@
-import pandas as pd
-
-
 class PrintGraphByCode_visulise:
     """
     :code_assign: service
@@ -9,7 +6,7 @@ class PrintGraphByCode_visulise:
     import pandas as pd
     """
 
-    def __init__(self, selected_data, input_code):
+    def __init__(self, selected_data, input_code, threshold_value):
         """
         :param pd.DateFrame selected_data: отфильтрованный датасет для выбранной категории
         :param str input_code: выбранная категория
@@ -18,6 +15,7 @@ class PrintGraphByCode_visulise:
         self.SelectedData = selected_data
         self.input_code = input_code
         self.summeryCountry = pd.DataFrame
+        self.threshold_value = threshold_value / 100
 
     def selected_data(self):
         if self.input_code.isdigit():
@@ -26,9 +24,9 @@ class PrintGraphByCode_visulise:
             other_contry = self.summeryCountry[5:]['price'].mean()
             other_data = pd.DataFrame({'g15_name': ['OTHER'], 'price': [other_contry]})
             self.summeryCountry = pd.concat([top_five, other_data], ignore_index=True)
-        self.SelectedData.loc[self.SelectedData['cost'] / self.SelectedData['cost'].sum() < 0.02, 'g15_name'] \
+        self.SelectedData.loc[self.SelectedData['cost'] / self.SelectedData['cost'].sum() <= self.threshold_value, 'g15_name'] \
             = 'OTHER+NAN'
-        self.SelectedData.loc[self.SelectedData['quantity'] / self.SelectedData['quantity'].sum() < 0.02, 'g15_name'] \
+        self.SelectedData.loc[self.SelectedData['quantity'] / self.SelectedData['quantity'].sum() <= self.threshold_value, 'g15_name'] \
             = 'OTHER+NAN'
 
 
@@ -36,6 +34,7 @@ def diagram_visualise_acp(
         dataset_import: pd.DataFrame,
         dataset_dt: pd.DataFrame,
         input_code: str = '803901000',
+        threshold_value: float = 2.0,
         start_date: str = '2021-01-01',
         end_date: str = '2023-12-31',
         linear_regression: bool = False,
@@ -50,7 +49,8 @@ def diagram_visualise_acp(
     import numpy as np
     :param_block pd.DataFrame dataset_import: датасет
     :param_block pd.DataFrame dataset_dt: датасет
-    :param str input_code: выбранная категория
+    :param str input_code: выбранная код ТН ВЭД или тип товара
+    :param float threshold_value: пороговое значение
     :param str start_date: дата начала
     :param str end_date: дата конца
     :param bool linear_regression: флаг для линейной регрессии
@@ -61,7 +61,56 @@ def diagram_visualise_acp(
     """
     error = ""
     gui_dict = init_gui_dict()
-
+    TNVED_codes = {
+        'fridges': ['8418102001',
+                    '8418108001',
+                    '8418211000',
+                    '8418215100',
+                    '8418215900',
+                    '8418219100',
+                    '8418219900',
+                    '8418302001',
+                    '8418308001',
+                    '8418402001',
+                    '8418408001'],
+        'tires': ['4011100003',
+                  '4011100009',
+                  '4011201000',
+                  '4011209000',
+                  '4011400000',
+                  '4011700000',
+                  '4011800000',
+                  '4011900000'],
+        'tomato': ['702000001',
+                   '702000002',
+                   '702000003',
+                   '702000004',
+                   '702000005',
+                   '702000006',
+                   '702000007',
+                   '702000009'],
+        'lemons': ['805501000',
+                   '80550100',
+                   '8055010',
+                   '805501',
+                   '80550',
+                   '8055',
+                   '805',
+                   ],
+        'banana': [
+            '803901000',
+            '80390100',
+            '8039010',
+            '803901',
+            '80390',
+            '8039',
+            '803'
+        ]
+    }
+    if dataset_dt.empty:
+        raise Exception(f'Датасет ДТ пуст')
+    if dataset_import.empty:
+        raise Exception('Датасет импорта пуст')
     start_date_wo_day = start_date.split('-')
     end_date_wo_day = end_date.split('-')
     date_start = '-'.join(start_date_wo_day[:2])
@@ -69,7 +118,7 @@ def diagram_visualise_acp(
     date_start = pd.to_datetime(date_start)
     date_end = pd.to_datetime(date_end)
     selectedData = dataset_import.loc[(dataset_import['g331goodstnvedcode'].astype(str) == input_code.lstrip('0')) |
-                                      (dataset_import['type'].astype(str) == input_code)]
+                                      (dataset_import['type'].str.lower().str.contains(input_code.lower()))]
     if selectedData.empty:
         raise Exception(f'Товаров по коду или типу выбранного товара нет')
     selectedData['import_date'] = pd.to_datetime(selectedData['import_date'])
@@ -78,7 +127,7 @@ def diagram_visualise_acp(
     if selected_data.empty:
         raise Exception(f'Товаров по коду или типу выбранного товара нет в заданном интервале нет')
 
-    PG = PrintGraphByCode_visulise(selected_data, input_code)
+    PG = PrintGraphByCode_visulise(selected_data, input_code, threshold_value)
     PG.selected_data()
     gui_dict['plot'].append(
         Window(
@@ -104,7 +153,7 @@ def diagram_visualise_acp(
                 canvases=[Canvas(title=f'Средняя цена по странам по коду: {input_code}',
                                  showlegend=False,
                                  x_title='Страны',
-                                 y_title='Цена',
+                                 y_title='Цена, бел. руб',
                                  plots=[BarPlot(x=PG.summeryCountry['g15_name'].values,
                                                 y=PG.summeryCountry['price'].values
                                                 )]
@@ -113,7 +162,7 @@ def diagram_visualise_acp(
             ).to_dict())
 
         pd.options.mode.chained_assignment = None
-        dataset_dt_filtered = dataset_dt[(dataset_dt['roster_item_code'] == int(input_code.lstrip('0')))]
+        dataset_dt_filtered = dataset_dt[(dataset_dt['g331goodstnvedcode'] == int(input_code.lstrip('0')))]
 
         if dataset_dt_filtered.empty:
             raise Exception(f'Нет записей по коду {input_code} в декларациях на товарах')
@@ -127,33 +176,13 @@ def diagram_visualise_acp(
             (dataset_dt_filtered['dt_date'] >= start_date) & (dataset_dt_filtered['dt_date'] <= end_date)]
 
         pe = PricesESF(dt_data=dt_data)
-        sorted_dt_dates, dt_means, weight = pe.get_dt_means_monthly()
+        sorted_dt_dates, dt_means, weight = pe.get_dt_means_monthly(input_code)
+        weights = [f'Объем: {i // 1000} т' for i in weight]
         x_list = [pd.array(sorted_dt_dates)]
         y_list = [pd.array(dt_means)]
-        names = ['ДТ']
-        plots = []
-        if linear_regression:
-            lr = ACPLinearRegression(x_list, y_list, step_regression, names, [weight])
-            plots = lr.train_regression()
-        weight = [f'Объем: {i // 1000} т' for i in weight]
-        for x, y in zip(x_list, y_list):
-            plots.append(LinePlot(x=x, y=y, names=names))
-            plots.append(Scatter2DPlot(x=x, y=y, names=names, text=[weight], marker=[dict(color="black")]))
-
-        gui_dict['plot'].append(
-            Window(
-                window_title='Линейный график среднезвешанных цен',
-                canvases=[Canvas(
-                    title=f'Средневзвешенные цены продаж по товару {input_code} с {start_date} по {end_date}',
-                    x_title="Месяц",
-                    y_title='Цена',
-                    showlegend=True,
-                    plots=plots)]
-            ).to_dict()
-        )
 
     else:
-        df = dataset_import
+        df = selectedData
 
         df['weighted_cost'] = df['price'] * df['quantity']  # Взвешенная сумма
 
@@ -162,24 +191,84 @@ def diagram_visualise_acp(
         grouped_df['weighted_avg_cost'] = grouped_df['weighted_cost'] / grouped_df['quantity']  # Среднее взвешенное
         result_df = grouped_df.drop(columns=['weighted_cost', 'quantity']).reset_index()
 
-        selected_data = result_df.loc[(result_df['type'].astype(str) == input_code)]  # Поменять на выпадающую строку
-        selected_data = selected_data.sort_values(by=['weighted_avg_cost'],
+        if result_df.empty:
+            raise Exception(f'Пустая выборка')
+
+        result_df = result_df.sort_values(by=['weighted_avg_cost'],
                                                   ascending=False)  # Сортировка по средним значениям
-        data_final = selected_data.head(5)
-        avg_other = selected_data['weighted_avg_cost'][5:].mean()  # Топ 5 и остальное убирается в кучу
+        data_final = result_df.head(5)
+        avg_other = result_df['weighted_avg_cost'][5:].mean()  # Топ 5 и остальное убирается в кучу
         data_final.loc[1] = ['OTHER', input_code, avg_other]
+
         gui_dict['plot'].append(
             Window(
                 window_title='Гистограмма',
                 canvases=[Canvas(title=f'Средняя цена по странам по типу товара: {input_code}',
                                  showlegend=False,
                                  x_title='Страны',
-                                 y_title='Цена',
+                                 y_title='Цена, бел. руб',
                                  plots=[BarPlot(x=data_final['g15_name'].values,
                                                 y=data_final['weighted_avg_cost'].values
                                                 )]
                                  ),
                           ]
             ).to_dict())
+
+        if input_code.lower() in 'холодильники fridges':
+            input_codes = TNVED_codes['fridges']
+        elif input_code.lower() in 'шины шина tires':
+            input_codes = TNVED_codes['tires']
+        elif input_code.lower() in 'томаты помидоры tomato':
+            input_codes = TNVED_codes['tomato']
+        elif input_code.lower() in 'лимоны lemons плантайны':
+            input_codes = TNVED_codes['lemons']
+        elif input_code.lower() in 'bananas бананы':
+            input_codes = TNVED_codes['banana']
+        else:
+            raise Exception(f'Кодов ТН ВЭД по вашему товару нет')
+
+        pd.options.mode.chained_assignment = None
+        dataset_dt_filtered = dataset_dt[
+            (dataset_dt['g331goodstnvedcode'].astype(str).str.lower().isin([code.lower() for code in input_codes]))]
+        if dataset_dt_filtered.empty:
+            raise Exception(f'Нет записей по типу "{input_code}" в декларациях на товарах')
+
+        dataset_dt_filtered['dt_date'] = pd.to_datetime(dataset_dt_filtered['dt_date'])
+
+        dt_data = dataset_dt_filtered.loc[
+            (dataset_dt_filtered['dt_date'] >= start_date) & (dataset_dt_filtered['dt_date'] <= end_date)]
+
+        pe = PricesESF(dt_data=dt_data)
+        sorted_dt_dates, dt_means, weight = pe.get_dt_means_monthly(input_code)
+        if input_code.lower() in 'холодильники шина шины':
+            weights = [f'Объем: {i} шт.' for i in weight]
+            weight = ['штука'] + weight
+        else:
+            weights = [f'Объем: {i // 1000} т' for i in weight]
+
+        x_list = [pd.array(sorted_dt_dates)]
+        y_list = [pd.array(dt_means)]
+
+    names = ['ДТ']
+    plots = []
+    if linear_regression:
+        lr = ACPLinearRegression(x_list, y_list, step_regression, names, [weight])
+        plots = lr.train_regression()
+
+    for x, y in zip(x_list, y_list):
+        plots.append(LinePlot(x=x, y=y, names=names))
+        plots.append(Scatter2DPlot(x=x, y=y, names=names, text=[weights], marker=[dict(color="black")]))
+
+    gui_dict['plot'].append(
+        Window(
+            window_title='Линейный график среднезвешанных цен',
+            canvases=[Canvas(
+                title=f'Средневзвешенные цены продаж по товару {input_code} с {start_date} по {end_date}',
+                x_title="Месяц",
+                y_title='Цена, бел. руб',
+                showlegend=True,
+                plots=plots)]
+        ).to_dict()
+    )
 
     return gui_dict, error

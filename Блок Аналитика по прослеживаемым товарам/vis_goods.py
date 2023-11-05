@@ -1,6 +1,3 @@
-import copy
-
-
 class monthlyPrices:
     """
     :code_assign: service
@@ -139,24 +136,6 @@ class monthlyPrices:
         price_arr.append(flattened_price_arr)
         count_arr.append(flattened_count_arr)
 
-        # Вывод данных до подсчета средневзвешенного значения
-        # print("\n\nИСХОДНЫЕ ДАННЫЕ")
-        # print("\ncode")
-        # print(len(code_arr))
-        # print(code_arr)
-        # print("\nmonth")
-        # print(len(month_arr))
-        # print(month_arr)
-        # print("\nyear")
-        # print(len(year_arr))
-        # print(year_arr)
-        # print("\nprice")
-        # print(len(price_arr))
-        # print(price_arr)
-        # print("\ncount")
-        # print(len(count_arr))
-        # print(count_arr)
-
         """
         Подсчет средневзвешенного значения
         """
@@ -244,11 +223,14 @@ class Chain:
     import re
     """
 
-    def __init__(self, dataset):
+    def __init__(self, dataset, include_company, company_unp):
         """
         :param pd.DateFrame: датасет
+        :param bool: фильтрация по коду конкретной компании
         """
         self.data = dataset
+        self.in_company = include_company
+        self.target_unp = company_unp
 
     def read_etn_prices(self):
         """
@@ -306,6 +288,20 @@ class Chain:
 
         return result
 
+    def read_etn_unps(self):
+        """
+        Функция чтения цепочек унп ЕТН
+        """
+        result = []
+
+        for index, row in self.data.iterrows():
+            unps = row['unps_shippers']
+            etns = re.findall(r'\d+\.\d+|\d+', unps)
+            etns = [int(etn) for etn in etns]
+            result.append(etns)
+
+        return result
+
     def read_dt_prices(self):
         """
         Функция чтения цен dt
@@ -340,6 +336,14 @@ class Chain:
         dts = [int(dt) for dt in dts]
         return dts
 
+    def read_dt_unps(self):
+        """
+        Функция чтения унп dt
+        """
+        dts = self.data['g14rbunp'].tolist()
+        dts = [int(dt) for dt in dts]
+        return dts
+
     def read_check_prices(self):
         """
         Функция чтения цен check
@@ -371,6 +375,14 @@ class Chain:
         Функция чтения годов check
         """
         checks = self.data['year_check'].tolist()
+        checks = [int(check) for check in checks]
+        return checks
+
+    def read_check_unps(self):
+        """
+        Функция чтения унп check
+        """
+        checks = self.data['unp'].tolist()
         checks = [int(check) for check in checks]
         return checks
 
@@ -413,18 +425,21 @@ class Chain:
         months = self.read_etn_months()  # Все месяцы
         years = self.read_etn_years()  # Все года
         counts = self.read_etn_counts()  # Все количества
+        unps = self.read_etn_unps() # Все УНП
 
         # ЧТЕНИЕ DT
         dt_prices = self.read_dt_prices()
         dt_months = self.read_dt_months()
         dt_years = self.read_dt_years()
         dt_counts = self.read_dt_counts()
+        dt_unps = self.read_dt_unps()
 
         # ЧТЕНИЕ CHECK
         check_prices = self.read_check_prices()
         check_months = self.read_check_months()
         check_years = self.read_check_years()
         check_counts = self.read_check_counts()
+        check_unps = self.read_check_unps()
 
         # ЧТЕНИЕ КОДОВ И GTIN
         icc = self.read_itemcustomcodes()  # коды
@@ -459,6 +474,35 @@ class Chain:
             prices[i].append(check_prices[i])
             counts[i].insert(0, dt_counts[i])
             counts[i].append(check_counts[i])
+            unps[i].insert(0, dt_unps[i])
+            unps[i].append(check_unps[i])
+
+        correct_unp_months = []
+        correct_unp_prices = []
+        correct_unp_counts = []
+        correct_unp_icc = []
+        correct_unp_lid = []
+
+        # Сохраняем только цепочки, содержащие код определенной компании
+        if self.in_company:
+            for i in range(len(unps)):
+                save_chain = False
+                for company in unps[i]:
+                    if str(company) == self.target_unp:
+                        save_chain = True
+                if save_chain:
+                    correct_unp_months.append(months[i])
+                    correct_unp_prices.append(prices[i])
+                    correct_unp_counts.append(counts[i])
+                    correct_unp_icc.append(icc[i])
+                    correct_unp_lid.append(lid[i])
+        else:
+            for i in range(len(unps)):
+                correct_unp_months.append(months[i])
+                correct_unp_prices.append(prices[i])
+                correct_unp_counts.append(counts[i])
+                correct_unp_icc.append(icc[i])
+                correct_unp_lid.append(lid[i])
 
         """
         Удаляем цепочки, в которых CHECK стоит раньше последней ETN
@@ -470,13 +514,13 @@ class Chain:
         filtered_icc = []
         filtered_lid = []
 
-        for i in range(len(months)):
-            if months[i][-1] >= months[i][-2]:
-                filtered_months.append(months[i])
-                filtered_prices.append(prices[i])
-                filtered_counts.append(counts[i])
-                filtered_icc.append(icc[i])
-                filtered_lid.append(lid[i])
+        for i in range(len(correct_unp_months)):
+            if correct_unp_months[i][-1] >= correct_unp_months[i][-2]:
+                filtered_months.append(correct_unp_months[i])
+                filtered_prices.append(correct_unp_prices[i])
+                filtered_counts.append(correct_unp_counts[i])
+                filtered_icc.append(correct_unp_icc[i])
+                filtered_lid.append(correct_unp_lid[i])
 
         """
         Подсчет средневзвешенных значений по всем подходящим цепочкам
@@ -485,8 +529,7 @@ class Chain:
         agg_data = {}
 
         for i in range(len(filtered_icc)):
-            key = (tuple(filtered_months[i]), filtered_icc[i],
-                   filtered_lid[i])  # создаем ключ для идентификации уникальной цепочки и кода icc
+            key = (tuple(filtered_months[i]), filtered_icc[i], filtered_lid[i])  # создаем ключ для идентификации уникальной цепочки и кода icc
             if key not in agg_data:
                 agg_data[key] = {'prices_sum': np.array(filtered_prices[i]),
                                  'counts_sum': np.array(filtered_counts[i]),
@@ -532,7 +575,12 @@ def monthly_prices_visualise(
         dataset: pd.DataFrame,
         input_code: str = '',
         chain_flag: bool = False,
-        size_chain: int = 1
+        size_chain: int = 1,
+        date_dt: str = '',
+        date_check: str = '',
+        all_interval: bool = False,
+        include_company: bool = False,
+        company_unp: str = '',
 ):
     """
     :code_assign: users
@@ -546,6 +594,11 @@ def monthly_prices_visualise(
     :param str input_code: выбранная категория
     :param bool chain_flag: флаг для построения цепочек
     :param int size_chain: размер цепочки
+    :param str date_dt: дата ДТ
+    :param str date_check: дата чека
+    :param bool all_interval: все цепочки внутри интервала дат
+    :param bool include_company: цепочки по коду определенной компании
+    :param str company_unp: унп компании
     :returns: gui_dict, error
     :rtype: dict, str
     :semrtype: ,
@@ -559,7 +612,7 @@ def monthly_prices_visualise(
         codes = MP.fridges_codes
     else:
         codes = [input_code]
-    
+
     code_arr_t, sorted_months_arr_t, sorted_year_arr_t, sorted_prices_arr_t = MP.get_monthly_prices(dataset,
                                                                                                     codes)
     canvases = []
@@ -591,25 +644,41 @@ def monthly_prices_visualise(
         ).to_dict()
     )
 
-    if chain_flag:
-        CH = Chain(dataset)
-        x_points_arr, y_points_arr = CH.get_average_chains(int(input_code), int(size_chain))
-        plots = []
-        text = [[f"DT"] + ["ETN" + str(i) for i in range(1, size_chain + 1)] + [f"Check"]]
-        for x, y in zip(x_points_arr, y_points_arr):
-            plots.append(LinePlot(x=np.array(x), y=y, names=[f'Месяц: {"-".join(map(str, x))}']))
-            plots.append(Scatter2DPlot(x=np.array(x), y=y, names=[f'Месяц: {"-".join(map(str, x))}'], text=text,
-                                       marker=[dict(color="black")]))
-        gui_dict['plot'].append(
-            Window(
-                window_title='Цепочка продаж - линейный график',
-                canvases=[Canvas(
-                    title=f'Цепочка продаж {input_code} размерностью {size_chain}',
-                    x_title='Цепочка',
-                    y_title='Цена',
-                    showlegend=True,
-                    plots=plots)]
-            ).to_dict()
-        )
+    # Фильтрация цепочек по интервалу времени
+    dataset['dt_date'] = pd.to_datetime(dataset['dt_date'])
+    dataset['issued_at'] = pd.to_datetime(dataset['issued_at'])
+    if all_interval:
+        data_right_dates = dataset[(dataset['dt_date'] >= date_dt) & (dataset['issued_at'] <= date_check)]
+    else:
+        data_right_dates = dataset[(dataset['dt_date'] == date_dt) & (dataset['issued_at'] == date_check)]
+
+    if not data_right_dates.empty:
+        if chain_flag:
+            CH = Chain(data_right_dates, include_company, company_unp)
+            x_points_arr, y_points_arr = CH.get_average_chains(int(input_code), int(size_chain))
+            plots = []
+            text = [[f"DT"] + ["ETN" + str(i) for i in range(1, size_chain + 1)] + [f"Check"]]
+            for x, y in zip(x_points_arr, y_points_arr):
+                plots.append(LinePlot(x=np.array(x), y=y, names=[f'Месяц: {"-".join(map(str, x))}']))
+                plots.append(Scatter2DPlot(x=np.array(x), y=y, names=[f'Месяц: {"-".join(map(str, x))}'], text=text,
+                                           marker=[dict(color="black")]))
+            gui_dict['plot'].append(
+                Window(
+                    window_title='Цепочка продаж - линейный график',
+                    canvases=[Canvas(
+                        title=f'Цепочка продаж {input_code} размерностью {size_chain}',
+                        x_title='Цепочка',
+                        y_title='Цена',
+                        showlegend=True,
+                        plots=plots)]
+                ).to_dict()
+            )
+    else:
+        raise Exception(f'Нет цепочек по коду {str(target_code)} с указанными датами ДТ и чек')
 
     return gui_dict, error
+
+
+
+
+

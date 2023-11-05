@@ -1,6 +1,3 @@
-import pandas as pd
-
-
 class PricesESF:
     """
     :code_assign: service
@@ -61,7 +58,7 @@ class PricesESF:
 
         return dt_dates, dt_means
 
-    def get_dt_means_monthly(self):
+    def get_dt_means_monthly(self, code):
         """
         Функция подсчета средневзвешенного значения по всем ДТ по месяцам
         """
@@ -72,17 +69,29 @@ class PricesESF:
         # Извлекаем год, месяц и день из даты
         df['year'] = df['dt_date'].dt.year
         df['month'] = df['dt_date'].dt.month
+        if code.isdigit() or code.lower() in 'томаты бананы лимоны':
+            # Рассчитываем сумму (продажи * цена) для каждой строки
+            df['total_sales'] = df['g38netweightquantity'] * df['ТС/кг, бел руб']
 
-        # Рассчитываем сумму (продажи * цена) для каждой строки
-        df['total_sales'] = df['g38netweightquantity'] * df['ТС/кг, бел руб']
+            # Группируем данные по году и месяцу, а затем рассчитываем средневзвешенное значение
+            grouped = df.groupby(['year', 'month']).apply(
+                lambda x: (x['total_sales']).sum() / x['g38netweightquantity'].sum()).reset_index()
+            grouped.columns = ['year', 'month', 'weighted_average_price']
+            grouped_weight = df.groupby(['year', 'month'])['g38netweightquantity'].sum().reset_index()
+        else:
+            df['total_sales'] = df['g41goodsquantity'] * df['ТС/доп, бел руб']
 
-        # Группируем данные по году и месяцу, а затем рассчитываем средневзвешенное значение
-        grouped = df.groupby(['year', 'month']).apply(
-            lambda x: (x['total_sales']).sum() / x['g38netweightquantity'].sum()).reset_index()
-        grouped.columns = ['year', 'month', 'weighted_average_price']
-        grouped_weight = df.groupby(['year', 'month'])['g38netweightquantity'].sum().reset_index()
+            # Группируем данные по году и месяцу, а затем рассчитываем средневзвешенное значение
+            grouped = df.groupby(['year', 'month']).apply(
+                lambda x: (x['total_sales']).sum() / x['g41goodsquantity'].sum()).reset_index()
+            grouped.columns = ['year', 'month', 'weighted_average_price']
+            grouped_weight = df.groupby(['year', 'month'])['g41goodsquantity'].sum().reset_index()
         grouped_weight = grouped_weight.sort_values(['year', 'month'])
 
+        if code.isdigit() or code.lower() in 'томаты бананы лимоны':
+            weight = grouped_weight['g38netweightquantity'].tolist()
+        else:
+            weight = grouped_weight['g41goodsquantity'].tolist()
         # Возвращаем результаты в виде массивов
         years = grouped['year'].tolist()
         months = grouped['month'].tolist()
@@ -92,7 +101,7 @@ class PricesESF:
 
         dt_dates = self.dates_to_months(years, months)
 
-        return dt_dates, dt_means, grouped_weight['g38netweightquantity'].tolist()
+        return dt_dates, dt_means, weight
 
     def get_first_esf_means_daily(self):
         """
@@ -448,6 +457,11 @@ class ACPLinearRegression:
             model = LinearRegression()
             model_weight = LinearRegression()
             model.fit(x_reshaped, y)
+            if weight[0] == 'штука':
+                weight = weight[1:]
+                volume = [1, 'шт.']
+            else:
+                volume = [1000, 'т.']
             model_weight.fit(x_reshaped, np.array(weight))
             xy_pred = model.predict(x_reshaped)
             intercept = model.intercept_
@@ -458,8 +472,8 @@ class ACPLinearRegression:
             x_pred = np.array(x_range).reshape((-1, 1))
             y_pred = np.array([intercept + coefficient * i for i in x_range])
             y_pred_weight = np.array([intercept_weight + coefficient_weight * i for i in x_range])
-            weight = [f'Объем: {i // 1000} т' for i in weight]
-            weight_predicted = [f'Объем: {i // 1000} т' for i in y_pred_weight]
+            weight = [f'Объем: {i // volume[0]} {volume[1]}' for i in weight]
+            weight_predicted = [f'Объем: {i // volume[0]} {volume[1]}' for i in y_pred_weight]
             plots.append(
                 LinePlot(x=np.append(x_reshaped, x_pred), y=np.append(xy_pred, y_pred), names=['Тренд ' + name]))
             plots.append(Scatter2DPlot(x=x_reshaped, y=xy_pred, names=['Тренд ' + name],
@@ -541,7 +555,7 @@ def lineplot_esf(
     pe = PricesESF(dt_data, first_esf_data, esf_data, last_esf_data, check_data)
     weights = ['ДТ']
     if monthly:
-        sorted_dt_dates, dt_means, weights = pe.get_dt_means_monthly()
+        sorted_dt_dates, dt_means, weights = pe.get_dt_means_monthly(product_code)
         sorted_first_esf_dates, first_esf_means = pe.get_first_esf_means_monthly()
         sorted_esf_dates, esf_means = pe.get_esf_means_monthly()
         sorted_last_esf_dates, last_esf_means = pe.get_last_esf_means_monthly()

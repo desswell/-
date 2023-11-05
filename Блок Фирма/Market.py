@@ -1,7 +1,7 @@
 class Market_ACP:
     """
     :code_assign: service
-    :code_type: отрисовка графиков ф-ий блока Рынка
+    :code_type: отрисовка графиков ф-ий блока Фирма
     :imports: Canvas, BarPlot
     :packages:
     import pandas as pd
@@ -136,7 +136,7 @@ class Market_ACP:
         if grouped_df.empty:
             pass
         else:
-            self.canvass.append(Canvas(title=f'Объем ценового рынка по ДТ по коду товара: {self.code}',
+            self.canvass.append(Canvas(title=f'Объем ценового рынка компании {self.company} по ДТ по коду товара: {self.code}',
                                        showlegend=False,
                                        x_title='Дата',
                                        y_title='Цена',
@@ -157,7 +157,7 @@ class Market_ACP:
         if grouped_df.empty:
             pass
         else:
-            self.canvass.append(Canvas(title=f'Объем количественного рынка по ДТ по коду товара: {self.code}',
+            self.canvass.append(Canvas(title=f'Объем количественного рынка компании {self.company}  по ДТ по коду товара: {self.code}',
                                        showlegend=False,
                                        x_title='Дата',
                                        y_title='Кол-во в КГ',
@@ -179,7 +179,7 @@ class Market_ACP:
         if grouped_df.empty:
             pass
         else:
-            self.canvass.append(Canvas(title=f'Объем ценового рынка по Чекам по коду товара: {self.code}',
+            self.canvass.append(Canvas(title=f'Объем ценового рынка компании {self.company}  по Чекам по коду товара: {self.code}',
                                        showlegend=False,
                                        x_title='Дата',
                                        y_title='Цена',
@@ -200,7 +200,7 @@ class Market_ACP:
         if grouped_df.empty:
             pass
         else:
-            self.canvass.append(Canvas(title=f'Объем количественного рынка по Чекам по коду товара: {self.code}',
+            self.canvass.append(Canvas(title=f'Объем количественного рынка компании {self.company}  по Чекам по коду товара: {self.code}',
                                        showlegend=False,
                                        x_title='Дата',
                                        y_title='Кол-во в КГ',
@@ -218,7 +218,7 @@ def market_acp(
         code: str,
         company: str,
         time_start: str,
-        time_end: str
+        time_end: str,
 ):
     """
     :code_assign: users
