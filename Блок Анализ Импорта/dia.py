@@ -29,9 +29,11 @@ class PrintGraphByCode_visulise:
                 self.summeryCountry = pd.concat([top_five, other_data], ignore_index=True)
             else:
                 self.summeryCountry = unit
-        self.SelectedData.loc[self.SelectedData['cost'] / self.SelectedData['cost'].sum() <= self.threshold_value, 'g15_name'] \
+        self.SelectedData.loc[
+            self.SelectedData['cost'] / self.SelectedData['cost'].sum() <= self.threshold_value, 'g15_name'] \
             = 'OTHER+NAN'
-        self.SelectedData.loc[self.SelectedData['quantity'] / self.SelectedData['quantity'].sum() <= self.threshold_value, 'g15_name'] \
+        self.SelectedData.loc[
+            self.SelectedData['quantity'] / self.SelectedData['quantity'].sum() <= self.threshold_value, 'g15_name'] \
             = 'OTHER+NAN'
 
 
@@ -48,7 +50,7 @@ def diagram_visualise_acp(
     """
     :code_assign: users
     :code_type: Пользовательские функции
-    :imports: init_gui_dict, Window, Canvas, PiePlot, PrintGraphByCode_visulise, BarPlot, ACPLinearRegression, PricesESF
+    :imports: init_gui_dict, Window, Canvas, PiePlot, PrintGraphByCode_visulise, BarPlot, ACPLinearRegression, PricesESF, Top_OriginCountry_Cost_Count1
     :packages:
     import pandas as pd
     import numpy as np
@@ -122,6 +124,24 @@ def diagram_visualise_acp(
     date_end = '-'.join(map(str, end_date_wo_day[:2]))
     date_start = pd.to_datetime(date_start)
     date_end = pd.to_datetime(date_end)
+    if not input_code.isdigit():
+        if input_code.lower() in 'холодильники fridges':
+            input_codes = TNVED_codes['fridges']
+            input_code = 'холодильник'
+        elif input_code.lower() in 'шины шина tires':
+            input_codes = TNVED_codes['tires']
+            input_code = 'шины'
+        elif input_code.lower() in 'томаты помидоры tomatoes':
+            input_codes = TNVED_codes['tomato']
+            input_code = 'томат'
+        elif input_code.lower() in 'лимоны lemons плантайны':
+            input_codes = TNVED_codes['lemons']
+            input_code = 'лимон'
+        elif input_code.lower() in 'bananas бананы':
+            input_codes = TNVED_codes['banana']
+            input_code = 'банан'
+        else:
+            raise Exception(f'Кодов ТН ВЭД по вашему товару нет')
     selectedData = dataset_import.loc[(dataset_import['g331goodstnvedcode'].astype(str) == input_code.lstrip('0')) |
                                       (dataset_import['type'].str.lower().str.contains(input_code.lower()))]
     if selectedData.empty:
@@ -136,13 +156,13 @@ def diagram_visualise_acp(
     PG.selected_data()
     gui_dict['plot'].append(
         Window(
-            window_title='Круговые диаграммы',
-            canvases=[Canvas(title=f'Количественная выборка по коду: {input_code}',
+            window_title='Топ стран-импортеров',
+            canvases=[Canvas(title=f'Топ стран-импортеров в количественной выборке по коду: {input_code}',
                              showlegend=True,
                              plots=[PiePlot(labels=PG.SelectedData['g15_name'].astype('str'),
                                             values=PG.SelectedData['quantity'].astype('int'))]
                              ),
-                      Canvas(title=f'Ценовая выборка по коду: {input_code}',
+                      Canvas(title=f'Топ стран-импортеров в стоимостной выборке по коду: {input_code}',
                              showlegend=True,
                              plots=[PiePlot(labels=PG.SelectedData['g15_name'].astype('str'),
                                             values=PG.SelectedData['cost'].astype('int'))]
@@ -165,6 +185,39 @@ def diagram_visualise_acp(
                                  ),
                           ]
             ).to_dict())
+
+        selectedDataOrigCountry = dataset_dt.loc[
+            (dataset_dt['g331goodstnvedcode'].astype(str) == input_code.lstrip('0'))]
+        if selectedDataOrigCountry.empty:
+            raise Exception(f'Товаров по коду или типу выбранного товара нет')
+
+        selectedDataOrigCountry.loc[:, 'dt_date'] = pd.to_datetime(selectedDataOrigCountry['dt_date'])
+        selected_data_orig_country = selectedDataOrigCountry.loc[
+            (selectedDataOrigCountry["dt_date"] >= date_start) & (selectedDataOrigCountry["dt_date"] <= date_end)]
+        if selected_data_orig_country.empty:
+            raise Exception(f'Товаров по коду или типу выбранного товара нет в заданном интервале нет')
+        Com = Top_OriginCountry_Cost_Count1(selected_data_orig_country, input_code, threshold_value)
+        count_sale = Com.sort_count_sale()
+        cost_sale = Com.sort_cost_sale()
+
+        gui_dict['plot'].append(
+            Window(
+                window_title='Топ стран-производителей',
+                canvases=[Canvas(
+                    title=f'Топ стран-производителей в количественной выборке по коду: {input_code}',
+                    showlegend=True,
+                    plots=[PiePlot(labels=count_sale['g34origincountryname'].astype('str'),
+                                   values=count_sale['count'].astype('int'))]
+                ),
+                    Canvas(
+                        title=f'Топ стран-производителей в стоимостной выборке по коду: {input_code}',
+                        showlegend=True,
+                        plots=[PiePlot(labels=cost_sale['g34origincountryname'].astype('str'),
+                                       values=cost_sale['cost'].astype('int'))]
+                    ),
+                ]
+            ).to_dict()
+        )
 
         pd.options.mode.chained_assignment = None
         dataset_dt_filtered = dataset_dt[(dataset_dt['g331goodstnvedcode'] == int(input_code.lstrip('0')))]
@@ -200,7 +253,7 @@ def diagram_visualise_acp(
             raise Exception(f'Пустая выборка')
 
         result_df = result_df.sort_values(by=['weighted_avg_cost'],
-                                                  ascending=False)  # Сортировка по средним значениям
+                                          ascending=False)  # Сортировка по средним значениям
         data_final = result_df.head(5)
         avg_other = result_df['weighted_avg_cost'][5:].mean()  # Топ 5 и остальное убирается в кучу
         data_final.loc[1] = ['OTHER', input_code, avg_other]
@@ -219,18 +272,39 @@ def diagram_visualise_acp(
                           ]
             ).to_dict())
 
-        if input_code.lower() in 'холодильники fridges':
-            input_codes = TNVED_codes['fridges']
-        elif input_code.lower() in 'шины шина tires':
-            input_codes = TNVED_codes['tires']
-        elif input_code.lower() in 'томаты помидоры tomato':
-            input_codes = TNVED_codes['tomato']
-        elif input_code.lower() in 'лимоны lemons плантайны':
-            input_codes = TNVED_codes['lemons']
-        elif input_code.lower() in 'bananas бананы':
-            input_codes = TNVED_codes['banana']
-        else:
-            raise Exception(f'Кодов ТН ВЭД по вашему товару нет')
+        selectedDataOrigCountry = dataset_dt.loc[(dataset_dt['g331goodstnvedcode'].astype(str).str.lower().isin(
+            [tnved_code.lower() for tnved_code in input_codes]))
+        ]
+        if selectedDataOrigCountry.empty:
+            raise Exception(f'Товаров по коду или типу выбранного товара нет')
+
+        selectedDataOrigCountry.loc[:, 'dt_date'] = pd.to_datetime(selectedDataOrigCountry['dt_date'])
+        selected_data_orig_country = selectedDataOrigCountry.loc[
+            (selectedDataOrigCountry["dt_date"] >= date_start) & (selectedDataOrigCountry["dt_date"] <= date_end)]
+        if selected_data_orig_country.empty:
+            raise Exception(f'Товаров по коду или типу выбранного товара нет в заданном интервале нет')
+        Com = Top_OriginCountry_Cost_Count1(selected_data_orig_country, input_code, threshold_value)
+        count_sale = Com.sort_count_sale()
+        cost_sale = Com.sort_cost_sale()
+
+        gui_dict['plot'].append(
+            Window(
+                window_title='Топ стран-производителей',
+                canvases=[Canvas(
+                    title=f'Топ стран-производителей в количественной выборке по типу товара: {input_code}',
+                    showlegend=True,
+                    plots=[PiePlot(labels=count_sale['g34origincountryname'].astype('str'),
+                                   values=count_sale['count'].astype('int'))]
+                ),
+                    Canvas(
+                        title=f'Топ стран-производителей в стоимостной выборке по типу товара: {input_code}',
+                        showlegend=True,
+                        plots=[PiePlot(labels=cost_sale['g34origincountryname'].astype('str'),
+                                       values=cost_sale['cost'].astype('int'))]
+                    ),
+                ]
+            ).to_dict()
+        )
 
         pd.options.mode.chained_assignment = None
         dataset_dt_filtered = dataset_dt[
