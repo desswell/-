@@ -20,10 +20,15 @@ class PrintGraphByCode_visulise:
     def selected_data(self):
         if self.input_code.isdigit():
             self.summeryCountry = self.SelectedData.sort_values(by='price', ascending=False)
-            top_five = self.summeryCountry.head(5)[['g15_name', 'price']]
-            other_contry = self.summeryCountry[5:]['price'].mean()
-            other_data = pd.DataFrame({'g15_name': ['OTHER'], 'price': [other_contry]})
-            self.summeryCountry = pd.concat([top_five, other_data], ignore_index=True)
+            unit = self.summeryCountry.groupby(['g15_name'])['price'].mean().reset_index()
+            if unit.shape[0] > 5:
+                unit = unit.sort_values(by='price', ascending=False).reset_index()
+                top_five = unit.head(min(5, len(unit)))[['g15_name', 'price']]
+                other_contry = unit[5:]['price'].mean()
+                other_data = pd.DataFrame({'g15_name': ['OTHER'], 'price': [other_contry]})
+                self.summeryCountry = pd.concat([top_five, other_data], ignore_index=True)
+            else:
+                self.summeryCountry = unit
         self.SelectedData.loc[self.SelectedData['cost'] / self.SelectedData['cost'].sum() <= self.threshold_value, 'g15_name'] \
             = 'OTHER+NAN'
         self.SelectedData.loc[self.SelectedData['quantity'] / self.SelectedData['quantity'].sum() <= self.threshold_value, 'g15_name'] \
