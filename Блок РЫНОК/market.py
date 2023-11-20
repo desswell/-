@@ -5,7 +5,8 @@ class Market_esf:
     :packages:
     import pandas as pd
     """
-    def __init__(self, dt_data, first_esf_data, esf_data, last_esf_data, check_data):
+
+    def __init__(self, dt_data, first_esf_data, esf_data, last_esf_data, check_data, dt_esf, esf, checks):
         """
         :param pd.DateFrame dt_data: датасет DT
         :param pd.DateFrame first_esf_data: связанных с DT ЭСЧФ
@@ -18,6 +19,9 @@ class Market_esf:
         self.data_esf = esf_data
         self.data_last_esf = last_esf_data
         self.data_check = check_data
+        self.dt_esf = dt_esf
+        self.esf = esf
+        self.checks = checks
 
     def get_active_companies(self, esf_data):
         """
@@ -225,7 +229,8 @@ class Market_esf:
         """
 
         # Преобразуем поле general_date_transaction в формат даты
-        self.data_first_esf['general_date_transaction'] = pd.to_datetime(self.data_first_esf['general_date_transaction'])
+        self.data_first_esf['general_date_transaction'] = pd.to_datetime(
+            self.data_first_esf['general_date_transaction'])
 
         # Извлекаем год, месяц и день из даты
         self.data_first_esf['year'] = self.data_first_esf['general_date_transaction'].dt.year
@@ -233,16 +238,19 @@ class Market_esf:
         self.data_first_esf['day'] = self.data_first_esf['general_date_transaction'].dt.day
 
         # Рассчитываем значение roster_item_price
-        new_roster_item_price = (self.data_first_esf['roster_item_cost'].sum() / self.data_first_esf['roster_item_count'].sum())
+        new_roster_item_price = (
+                self.data_first_esf['roster_item_cost'].sum() / self.data_first_esf['roster_item_count'].sum())
 
         # Добавляем новый столбец new_roster_item_price к DataFrame
         self.data_first_esf['new_roster_item_price'] = new_roster_item_price
 
         # Рассчитываем сумму (продажи * цена) для каждой строки
-        self.data_first_esf['total_sales'] = self.data_first_esf['roster_item_count'] * self.data_first_esf['new_roster_item_price']
+        self.data_first_esf['total_sales'] = self.data_first_esf['roster_item_count'] * self.data_first_esf[
+            'new_roster_item_price']
 
         # Группируем данные по году и месяцу, а затем рассчитываем средневзвешенное значение
-        grouped = self.data_first_esf.groupby(['year', 'month', 'day']).apply(lambda x: (x['total_sales']).sum() / x['roster_item_count'].sum()).reset_index()
+        grouped = self.data_first_esf.groupby(['year', 'month', 'day']).apply(
+            lambda x: (x['total_sales']).sum() / x['roster_item_count'].sum()).reset_index()
         grouped.columns = ['year', 'month', 'day', 'weighted_average_price']
 
         # Возвращаем результаты в виде массивов
@@ -261,23 +269,27 @@ class Market_esf:
         """
 
         # Преобразуем поле general_date_transaction в формат даты
-        self.data_first_esf['general_date_transaction'] = pd.to_datetime(self.data_first_esf['general_date_transaction'])
+        self.data_first_esf['general_date_transaction'] = pd.to_datetime(
+            self.data_first_esf['general_date_transaction'])
 
         # Извлекаем год и месяц из даты
         self.data_first_esf['year'] = self.data_first_esf['general_date_transaction'].dt.year
         self.data_first_esf['month'] = self.data_first_esf['general_date_transaction'].dt.month
 
         # Рассчитываем значение roster_item_price
-        new_roster_item_price = (self.data_first_esf['roster_item_cost'].sum() / self.data_first_esf['roster_item_count'].sum())
+        new_roster_item_price = (
+                self.data_first_esf['roster_item_cost'].sum() / self.data_first_esf['roster_item_count'].sum())
 
         # Добавляем новый столбец new_roster_item_price к DataFrame
         self.data_first_esf['new_roster_item_price'] = new_roster_item_price
 
         # Рассчитываем сумму (продажи * цена) для каждой строки
-        self.data_first_esf['total_sales'] = self.data_first_esf['roster_item_count'] * self.data_first_esf['new_roster_item_price']
+        self.data_first_esf['total_sales'] = self.data_first_esf['roster_item_count'] * self.data_first_esf[
+            'new_roster_item_price']
 
         # Группируем данные по году и месяцу, а затем рассчитываем средневзвешенное значение
-        grouped = self.data_first_esf.groupby(['year', 'month']).apply(lambda x: (x['total_sales']).sum() / x['roster_item_count'].sum()).reset_index()
+        grouped = self.data_first_esf.groupby(['year', 'month']).apply(
+            lambda x: (x['total_sales']).sum() / x['roster_item_count'].sum()).reset_index()
         grouped.columns = ['year', 'month', 'weighted_average_price']
 
         # Возвращаем результаты в виде массивов
@@ -306,7 +318,8 @@ class Market_esf:
         self.data_esf['total_sales'] = self.data_esf['roster_item_count'] * self.data_esf['roster_item_price']
 
         # Группируем данные по году и месяцу, а затем рассчитываем средневзвешенное значение
-        grouped = self.data_esf.groupby(['year', 'month', 'day']).apply(lambda x: (x['total_sales']).sum() / x['roster_item_count'].sum()).reset_index()
+        grouped = self.data_esf.groupby(['year', 'month', 'day']).apply(
+            lambda x: (x['total_sales']).sum() / x['roster_item_count'].sum()).reset_index()
         grouped.columns = ['year', 'month', 'day', 'weighted_average_price']
 
         # Возвращаем результаты в виде массивов
@@ -335,7 +348,8 @@ class Market_esf:
         self.data_esf['total_sales'] = self.data_esf['roster_item_count'] * self.data_esf['roster_item_price']
 
         # Группируем данные по году и месяцу, а затем рассчитываем средневзвешенное значение
-        grouped = self.data_esf.groupby(['year', 'month']).apply(lambda x: (x['total_sales']).sum() / x['roster_item_count'].sum()).reset_index()
+        grouped = self.data_esf.groupby(['year', 'month']).apply(
+            lambda x: (x['total_sales']).sum() / x['roster_item_count'].sum()).reset_index()
         grouped.columns = ['year', 'month', 'weighted_average_price']
 
         # Возвращаем результаты в виде массивов
@@ -361,10 +375,12 @@ class Market_esf:
         self.data_last_esf['day'] = self.data_last_esf['general_date_transaction'].dt.day
 
         # Рассчитываем сумму (продажи * цена) для каждой строки
-        self.data_last_esf['total_sales'] = self.data_last_esf['roster_item_count'] * self.data_last_esf['roster_item_price']
+        self.data_last_esf['total_sales'] = self.data_last_esf['roster_item_count'] * self.data_last_esf[
+            'roster_item_price']
 
         # Группируем данные по году и месяцу, а затем рассчитываем средневзвешенное значение
-        grouped = self.data_last_esf.groupby(['year', 'month', 'day']).apply(lambda x: (x['total_sales']).sum() / x['roster_item_count'].sum()).reset_index()
+        grouped = self.data_last_esf.groupby(['year', 'month', 'day']).apply(
+            lambda x: (x['total_sales']).sum() / x['roster_item_count'].sum()).reset_index()
         grouped.columns = ['year', 'month', 'day', 'weighted_average_price']
 
         # Возвращаем результаты в виде массивов
@@ -390,10 +406,12 @@ class Market_esf:
         self.data_last_esf['month'] = self.data_last_esf['general_date_transaction'].dt.month
 
         # Рассчитываем сумму (продажи * цена) для каждой строки
-        self.data_last_esf['total_sales'] = self.data_last_esf['roster_item_count'] * self.data_last_esf['roster_item_price']
+        self.data_last_esf['total_sales'] = self.data_last_esf['roster_item_count'] * self.data_last_esf[
+            'roster_item_price']
 
         # Группируем данные по году и месяцу, а затем рассчитываем средневзвешенное значение
-        grouped = self.data_last_esf.groupby(['year', 'month']).apply(lambda x: (x['total_sales']).sum() / x['roster_item_count'].sum()).reset_index()
+        grouped = self.data_last_esf.groupby(['year', 'month']).apply(
+            lambda x: (x['total_sales']).sum() / x['roster_item_count'].sum()).reset_index()
         grouped.columns = ['year', 'month', 'weighted_average_price']
 
         # Возвращаем результаты в виде массивов
@@ -421,7 +439,8 @@ class Market_esf:
         self.data_check['total_sales'] = self.data_check['position_count'] * self.data_check['price']
 
         # Группируем данные по году, месяцу и дню, а затем рассчитываем средневзвешенное значение
-        grouped = self.data_check.groupby(['year', 'month', 'day']).apply(lambda x: (x['total_sales']).sum() / x['position_count'].sum()).reset_index()
+        grouped = self.data_check.groupby(['year', 'month', 'day']).apply(
+            lambda x: (x['total_sales']).sum() / x['position_count'].sum()).reset_index()
         grouped.columns = ['year', 'month', 'day', 'weighted_average_price']
 
         # Возвращаем результаты в виде массивов
@@ -449,7 +468,8 @@ class Market_esf:
         self.data_check['total_sales'] = self.data_check['position_count'] * self.data_check['price']
 
         # Группируем данные по году, месяцу и дню, а затем рассчитываем средневзвешенное значение
-        grouped = self.data_check.groupby(['year', 'month']).apply(lambda x: (x['total_sales']).sum() / x['position_count'].sum()).reset_index()
+        grouped = self.data_check.groupby(['year', 'month']).apply(
+            lambda x: (x['total_sales']).sum() / x['position_count'].sum()).reset_index()
         grouped.columns = ['year', 'month', 'weighted_average_price']
 
         # Возвращаем результаты в виде массивов
@@ -523,42 +543,118 @@ class Market_esf:
 
         return months
 
-    def get_unp_first_esf(self, tnv_code, item_name, time_start, time_end, data):
-        data_dt_esf = data.copy()
-        data_sorted = data_dt_esf[(data_dt_esf['g331goodstnvedcode'].astype(str) == tnv_code.lstrip('0'))
-                                  & (data_dt_esf['roster_item_name'] == item_name)
-                                  & (data_dt_esf['dt_date'] >= time_start)
-                                  & (data_dt_esf['dt_date'] <= time_end)].reset_index()
-        data_ans = data_sorted.sort_values(by='roster_item_count', ascending=False)
-        data_ans['recipient_unp'] = data_ans['recipient_unp'].astype(str)
-        data_ans['recipient_unp'] = data_ans['recipient_unp'].apply(lambda x: x.rstrip('0').rstrip('.'))
-        data_ans_to_list = data_ans[['recipient_unp', 'roster_item_count', 'roster_item_cost',
-                                     'ТС/кг, бел руб', 'g38netweightquantity']].values.tolist()
-        return data_ans_to_list
+    def get_weighted_check(self, last_unp, top_3):
+        weighted_price = {}
+        for top in top_3:
+            copy_check = self.checks.copy()
+            copy_check = copy_check[(copy_check['unp'].astype(str).isin(last_unp[top]))]
+            ch, zn = 0, 0
+            for index, item in copy_check.iterrows():
+                ch += item['price'] * item['position_count']
+                zn += item['position_count']
+            if zn:
+                weighted_price[top] = ch / zn
+            else:
+                weighted_price[top] = 0
+        return weighted_price
 
-    def get_unp_weight(self, unp_comp, data):
-        df = data.copy()
-        df = df.loc[(df['provider_unp'].astype(str) == unp_comp)].reset_index()
-        df = df.sort_values(by='roster_item_count', ascending=False)
-        df['recipient_unp'] = df['recipient_unp'].astype(str)
-        df['recipient_unp'] = df['recipient_unp'].apply(lambda x: x.rstrip('0').rstrip('.'))
-        return df['recipient_unp'].astype(str).tolist(), df['roster_item_count'].tolist(), df[
-            'roster_item_price'].tolist()
+    def get_next_unp(self, df, provider_unp):
+        df_local = df.copy()
+        df_local = df_local.loc[(df_local['provider_unp'].astype(str) == provider_unp)].reset_index()
+        df_local = df_local.sort_values(by='roster_item_count', ascending=False)
+        df_local['recipient_unp'] = df_local['recipient_unp'].astype(str)
+        df_local['recipient_unp'] = df_local['recipient_unp'].apply(lambda x: x.rstrip('0').rstrip('.'))
+        df_local = df_local.groupby('recipient_unp').agg({
+            'roster_item_count': 'sum',
+            'roster_item_price': 'sum',
+            'roster_item_cost': 'sum'
+        }).reset_index()
+
+        return df_local[['recipient_unp', 'roster_item_count', 'roster_item_price', 'roster_item_cost']]
+
+    def get_top_3(self, code, name):
+        data_sorted = self.dt_esf.copy()
+        data_sorted = data_sorted.loc[(data_sorted['roster_item_code'].astype(str) == code)
+                                      & (data_sorted['roster_item_name'].astype(str) == name)].reset_index()
+        data_sorted = data_sorted.groupby('provider_unp').agg({
+            'roster_item_count': 'sum',
+            'roster_item_cost': 'sum'
+        }).reset_index()
+        data_sorted.sort_values(by='roster_item_count', ascending=False)
+        return data_sorted['provider_unp'].astype(str).head(3).tolist()
+
+    def get_dt_weighted(self, code, name, unp):
+        df_local = self.dt_esf.copy()
+        df_local['recipient_unp'] = df_local['recipient_unp'].astype(str)
+        df_local['recipient_unp'] = df_local['recipient_unp'].apply(lambda x: x.rstrip('0').rstrip('.'))
+        df_local = df_local.loc[(df_local['roster_item_code'].astype(str) == code)
+                                & (df_local['roster_item_name'].astype(str) == name)
+                                & (df_local['provider_unp'].astype(str) == unp)].reset_index()
+        price = sum([i * j for i, j in zip(df_local['ТС/кг, бел руб'], df_local['g38netweightquantity'])]) \
+                / sum(df_local['g38netweightquantity'])
+        return price
+
+
+    def filter_data(self, tnved_code, goods_name, time_start, delta_time):
+        time_start = pd.to_datetime(time_start)
+        time_end = time_start + pd.DateOffset(days=delta_time)
+        self.esf = self.esf[(self.esf['document_type'] == "ORIGINAL")]
+        self.esf["general_date_transaction"] = pd.to_datetime(self.esf["general_date_transaction"])
+        self.esf = self.esf[(self.esf["general_date_transaction"] >= time_start) & (
+                self.esf["general_date_transaction"] <= time_end)
+                            & (self.esf["roster_item_code"].astype(str) == tnved_code)
+                            & (self.esf["roster_item_name"] == goods_name)
+                            ].reset_index()
+        self.dt_esf['dt_date'] = pd.to_datetime(self.dt_esf['dt_date'])
+        self.dt_esf = self.dt_esf[(self.dt_esf['g331goodstnvedcode'].astype(str) == tnved_code)
+                                  & (self.dt_esf['roster_item_name'] == goods_name)
+                                  & (self.dt_esf['dt_date'] >= time_start)
+                                  & (self.dt_esf['dt_date'] <= time_end)].reset_index()
+        self.checks['issued_at'] = pd.to_datetime(self.checks['issued_at'])
+        self.checks = self.checks[(self.checks['name'] == goods_name)
+                                  & (self.checks['tnved_code'].astype(str) == tnved_code)
+                                  & (self.checks['issued_at'] >= time_start)
+                                  & (self.checks['issued_at'] <= time_end)].reset_index()
+
+    def print_result(self, unp):
+        if type(unp) == list:
+            return unp
+        else:
+            return unp['recipient_unp'].tolist()
+
+    def erase_weight(self, df, max_weight):
+        copy_df = df.copy()
+        copy_df = copy_df.sort_values(by='roster_item_count', ascending=False)
+        local_weights = 0
+        local_index = None
+        for index, item in copy_df.iterrows():
+            if item['roster_item_count'] > max_weight:
+                copy_df.drop(index, inplace=True)
+                continue
+            if local_weights <= max_weight:
+                local_weights += item['roster_item_count']
+            else:
+                local_index = index
+                break
+        if local_index:
+            return copy_df.reset_index()[:local_index]
+        return df
 
 
 def market_esf(
-    dataset_dt: pd.DataFrame,
-    dataset_esf: pd.DataFrame,
-    dataset_last_esf: pd.DataFrame,
-    dataset_check: pd.DataFrame,
-    product_code: str = '',
-    start_date: str = '',
-    end_date: str = '',
-    daily_data: bool = False,
-    build_chain: bool = False,
-    start_date_to_chain: str = '',
-    interval: int = 30,
-    tracing_goods: str = ''
+        dataset_dt: pd.DataFrame,
+        dataset_esf: pd.DataFrame,
+        dataset_last_esf: pd.DataFrame,
+        dataset_check: pd.DataFrame,
+        product_code: str = '',
+        start_date: str = '',
+        end_date: str = '',
+        daily_data: bool = False,
+        build_chain: bool = False,
+        start_date_to_chain: str = '',
+        interval: int = 30,
+        tracing_goods: str = '',
+        size_chain: int = 2,
 ):
     """
     :code_assign: users
@@ -579,6 +675,7 @@ def market_esf(
     :param str start_date_to_chain: дата
     :param int interval: интервал дней для цепочек
     :param str tracing_goods: продукт по которому идет поиск
+    :param int size_chain: размер цепочки
     :returns: gui_dict, error
     :rtype: dict, str
     :semrtype: ,
@@ -600,9 +697,12 @@ def market_esf(
 
     # Фильтруем данные по указанному промежутку времени
     dt_data = dataset_dt[(dataset_dt['dt_date'] >= start_date) & (dataset_dt['dt_date'] <= end_date)]
-    first_esf_data = dataset_dt[(dataset_dt['general_date_transaction'] >= start_date) & (dataset_dt['general_date_transaction'] <= end_date)]
-    esf_data = dataset_esf[(dataset_esf['general_date_transaction'] >= start_date) & (dataset_esf['general_date_transaction'] <= end_date)]
-    last_esf_data = dataset_last_esf[(dataset_last_esf['general_date_transaction'] >= start_date) & (dataset_last_esf['general_date_transaction'] <= end_date)]
+    first_esf_data = dataset_dt[
+        (dataset_dt['general_date_transaction'] >= start_date) & (dataset_dt['general_date_transaction'] <= end_date)]
+    esf_data = dataset_esf[
+        (dataset_esf['general_date_transaction'] >= start_date) & (dataset_esf['general_date_transaction'] <= end_date)]
+    last_esf_data = dataset_last_esf[(dataset_last_esf['general_date_transaction'] >= start_date) & (
+            dataset_last_esf['general_date_transaction'] <= end_date)]
     check_data = dataset_check[(dataset_check['issued_at'] >= start_date) & (dataset_check['issued_at'] <= end_date)]
 
     # Для статистики по компаниям не учитываем данные неизвестных компаний
@@ -622,7 +722,8 @@ def market_esf(
     if df_esf_filtered.empty:
         raise Exception(f'Нет записей по коду {product_code} за период с {start_date} по {end_date}')
 
-    Market = Market_esf(df_dt_filtered, df_first_esf_filtered, df_esf_filtered, df_last_esf_filtered, df_check_filtered)
+    Market = Market_esf(df_dt_filtered, df_first_esf_filtered, df_esf_filtered, df_last_esf_filtered, df_check_filtered,
+                        dataset_dt, dataset_esf, dataset_check)
 
     # Получение статистики по компаниям
     company_stat, avg_price = Market.get_statistics(df_esf_filtered, start_date, end_date)
@@ -701,9 +802,12 @@ def market_esf(
                 y_title='Цена, бел. рубли',
                 showlegend=True,
                 plots=[
-                    BarPlot(x=np.array(top_five_sell_buy['УНП']), y=np.array(top_five_sell_buy['Ср.вз. цена продажи']), names=['Цена продажи']),
-                    BarPlot(x=np.array(top_five_sell_buy['УНП']), y=np.array(top_five_sell_buy['Ср.вз. цена покупки']), names=['Цена покупки']),
-                    LinePlot(x=np.array(top_five_sell_buy['УНП']), y=np.array(avg_price_arr), names=['Ср.вз. цена продажи по рынку'])
+                    BarPlot(x=np.array(top_five_sell_buy['УНП']), y=np.array(top_five_sell_buy['Ср.вз. цена продажи']),
+                            names=['Цена продажи']),
+                    BarPlot(x=np.array(top_five_sell_buy['УНП']), y=np.array(top_five_sell_buy['Ср.вз. цена покупки']),
+                            names=['Цена покупки']),
+                    LinePlot(x=np.array(top_five_sell_buy['УНП']), y=np.array(avg_price_arr),
+                             names=['Ср.вз. цена продажи по рынку'])
                 ])]
         ).to_dict()
     )
@@ -785,55 +889,85 @@ def market_esf(
         ).to_dict()
     )
     if build_chain:
-        time_start = pd.to_datetime(start_date_to_chain)
-        time_end = time_start + pd.DateOffset(days=interval)
-        time_end = pd.to_datetime(time_end)
-        time_start = time_start.strftime('%Y-%m-%d')
-        time_end = time_end.strftime('%Y-%m-%d')
-        unpes = Market.get_unp_first_esf(product_code, tracing_goods, time_start, time_end, dataset_dt)
-        data_esf = dataset_esf.copy()
-        data_esf = data_esf[(data_esf['document_type'] == "ORIGINAL")]
-        data_esf = data_esf.loc[(data_esf["general_date_transaction"] >= time_start) & (
-                data_esf["general_date_transaction"] <= time_end)
-                                & (data_esf["roster_item_code"].astype(str) == product_code.lstrip('0'))
-                                & (data_esf["roster_item_name"] == tracing_goods)
-                                ].reset_index()
+        top_3 = Market.get_top_3(product_code, tracing_goods)
+        dt_weighted_points = {}
+        for top in top_3:
+            dt_weighted_points[top] = Market.get_dt_weighted(product_code, tracing_goods, top)
+        Market.filter_data(product_code, tracing_goods, start_date_to_chain, interval)
+        chain_len = size_chain + 1
+        structure = {
+            0: {'dt': top_3}
+        }
+        structure_price = {}
+        weighted_points = {}
 
-        data_esf = data_esf.sort_values(by='general_date_transaction')
-        first_cost = []
-        first_weight = []
-        dt_costs = []
-        dt_weights = []
-        saved_price = []
-        saved_weight = []
+        for idx_chain in range(chain_len - 1):
+            structure[idx_chain + 1] = dict()
+            for company in structure[idx_chain]:
+                if type(structure[idx_chain][company]) == list:
+                    for recipient in structure[idx_chain][company]:
+                        next_chain = Market.get_next_unp(Market.dt_esf, recipient)
+                        structure[idx_chain + 1][recipient] = next_chain
+                else:
+                    for index, recipient in structure[idx_chain][company].iterrows():
+                        next_chain = Market.get_next_unp(Market.esf, recipient['recipient_unp'])
+                        next_chain = Market.erase_weight(next_chain, recipient['roster_item_count'])
+                        # print(next_chain)
+                        structure[idx_chain + 1][company + '_' + recipient['recipient_unp']] = next_chain
+        check = {}
+        for top in top_3:
+            check[top] = []
+            weighted_points[top] = {}
+            for size in range(1, chain_len):
+                weighted_points[top][size] = [0, 0]
+        for chain in structure:
+            # print('УЗЕЛ', chain)
+            count = 0
+            for index, provider in enumerate(structure[chain]):
+                if len(structure[chain][provider]) != 0:
+                    if chain != 0:
+                        price = structure[chain][provider]['roster_item_cost'].sum() / structure[chain][provider][
+                            'roster_item_count'].sum()
+                        if weighted_points[provider.split("_")[0]][chain][0] == 0:
+                            weighted_points[provider.split("_")[0]][chain] = [price, structure[chain][provider][
+                                'roster_item_count'].sum()]
+                        else:
+                            chain_price = weighted_points[provider.split("_")[0]][chain][0]
+                            chain_weight = weighted_points[provider.split("_")[0]][chain][1]
+                            current_weight = structure[chain][provider]['roster_item_count'].sum()
+                            weighted_points[provider.split("_")[0]][chain] = [
+                                (chain_price * chain_weight + price * current_weight) / (current_weight + chain_weight),
+                                chain_weight + current_weight]
+                        check[provider.split("_")[0]].extend(Market.print_result(structure[chain][provider]))
+                        # print(f'Цепочка: {provider} Поставщик: {provider.split("_")[-1]}, Получатели ({len(structure[chain][provider])}): {print_result(structure[chain][provider])}, Цена: {price:.3f}')
+                    else:
+                        pass
+                        # print(f'Цепочка: {provider} Поставщик: {provider.split("_")[-1]}, Получатели: {print_result(structure[chain][provider])}')
 
-        for unp, weight, esf_cost, dt_cost, dt_weight in unpes:
-            new_unp, new_weight, new_price = Market.get_unp_weight(unp, data_esf)
-            dt_costs.append(dt_cost)
-            dt_weights.append(dt_weight)
-            saved_price.extend(new_price)
-            saved_weight.extend(new_weight)
-            first_cost.append(esf_cost)
-            first_weight.append(weight)
+                    count += 1
 
-        if dt_weights and first_weight and saved_weight:
-            weighted_dt = sum([dt_costs[i] * dt_weights[i] for i in range(len(dt_weights))]) / sum(dt_weights)
-            weighted_cost1 = sum(first_cost) / sum(first_weight)
-            weighted_price2 = sum([saved_price[i] * saved_weight[i] for i in range(len(saved_price))]) / sum(saved_weight)
-            y = np.array([weighted_dt, weighted_cost1, weighted_price2])
+            # print(f'{count} / {len(structure[chain])}')
+        weighted_checks = Market.get_weighted_check(check, top_3)
+        plots = []
+        node_list = ['ДТ'] + [f"Узел {i}" for i in range(1, size_chain + 1)] + ['Чек']
+        for top in top_3:
+            if weighted_checks[top]:
+                y = np.array([dt_weighted_points[top]] + [value[0] for key, value in weighted_points[top].items()] + [weighted_checks[top]])
+                x = np.arange(len(y))
+                plots.append(LinePlot(x=x, y=y, names=[f'Цепочка ЭСЧФ для компании: {top}']))
+                plots.append(Scatter2DPlot(x=x, y=y, names=[f'Цепочка ЭСЧФ для компании: {top}'],
+                                           text=[node_list], marker=[dict(color="black")]))
 
-            gui_dict['plot'].append(
-                Window(
-                    window_title='Цепочка ДТ -> ЭСЧФ1 -> ЭСЧФ2',
-                    canvases=[Canvas(
-                        title=f'Цепочка по товару: {tracing_goods}',
-                        x_title='ДТ -> ЭСЧФ1 -> ЭСЧФ2',
-                        y_title='Средневзвешенная цена, бел. руб',
-                        showlegend=True,
-                        plots=[
-                            LinePlot(x=np.arange(3), y=y, names=['Цепочка']),
-                            Scatter2DPlot(x=np.arange(3), y=y, names=['Цепочка'], text=[['ДТ', 'ЭСЧФ1', 'ЭСЧФ2']], marker=[dict(color="black")])
-                        ])]
-                ).to_dict())
+        gui_dict['plot'].append(
+            Window(
+                window_title='Цепочка ЭСЧФ',
+                canvases=[Canvas(
+                    title=f'Цепочка ЭСЧФ по товару {tracing_goods}',
+                    x_title='Узел',
+                    y_title='Среднезвешенная цена, бел. руб',
+                    showlegend=True,
+                    plots=plots)]
+            ).to_dict()
+        )
 
     return gui_dict, error

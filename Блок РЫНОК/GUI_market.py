@@ -170,6 +170,26 @@
                                         },
                                 },
                         },
+                    'size_chain':
+                        {
+                            'gui_name':
+                                {
+                                    'rus': 'Размер цепочек',
+                                },
+                            'gui_type': 'input',
+                            'gui_type_value': 'int',
+                            'gui_default_values':
+                                {
+                                    'rus': 2
+                                },
+                            'gui_visible':
+                                {
+                                    'build_chain':
+                                        {
+                                            1: True,
+                                        },
+                                },
+                        },
                 }
         }
 }
