@@ -30,11 +30,18 @@ class PrintGraphByCode_visulise:
             else:
                 self.summeryCountry = unit
         self.SelectedData.loc[
+            self.SelectedData['g15_name'].isna(), 'g15_name'
+        ] = 'NaN'
+        self.SelectedData = self.SelectedData.groupby(['g15_name']).agg({
+            'quantity': 'sum',
+            'cost': 'sum',
+        }).reset_index()
+        self.SelectedData.loc[
             self.SelectedData['cost'] / self.SelectedData['cost'].sum() <= self.threshold_value, 'g15_name'] \
-            = 'OTHER+NAN'
+            = 'OTHER'
         self.SelectedData.loc[
             self.SelectedData['quantity'] / self.SelectedData['quantity'].sum() <= self.threshold_value, 'g15_name'] \
-            = 'OTHER+NAN'
+            = 'OTHER'
 
 
 def diagram_visualise_acp(
@@ -45,7 +52,9 @@ def diagram_visualise_acp(
         start_date: str = '2021-01-01',
         end_date: str = '2023-12-31',
         linear_regression: bool = False,
-        step_regression: int = 1
+        step_regression: int = 1,
+        adding_code: bool = False,
+        four_digit_code: str = ''
 ):
     """
     :code_assign: users
@@ -62,6 +71,8 @@ def diagram_visualise_acp(
     :param str end_date: дата конца
     :param bool linear_regression: флаг для линейной регрессии
     :param int step_regression: шаг регрессии
+    :param bool adding_code: флаг для учета дополнительного кода
+    :param str four_digit_code: дополнительный код
     :returns: gui_dict, error
     :rtype: dict, str
     :semrtype: ,
@@ -144,6 +155,12 @@ def diagram_visualise_acp(
             raise Exception(f'Кодов ТН ВЭД по вашему товару нет')
     selectedData = dataset_import.loc[(dataset_import['g331goodstnvedcode'].astype(str) == input_code.lstrip('0')) |
                                       (dataset_import['type'].str.lower().str.contains(input_code.lower()))]
+    if input_code.isdigit():
+        if adding_code:
+            selectedData = selectedData.loc[
+                (selectedData['goodsaddtnvedcode'].astype(str) == four_digit_code.lstrip('0'))]
+        else:
+            four_digit_code = ''
     if selectedData.empty:
         raise Exception(f'Товаров по коду или типу выбранного товара нет')
     selectedData['import_date'] = pd.to_datetime(selectedData['import_date'])
@@ -157,37 +174,28 @@ def diagram_visualise_acp(
     gui_dict['plot'].append(
         Window(
             window_title='Топ стран-импортеров',
-            canvases=[Canvas(title=f'Топ стран-импортеров в количественной выборке по коду: {input_code}',
-                             showlegend=True,
-                             plots=[PiePlot(labels=PG.SelectedData['g15_name'].astype('str'),
-                                            values=PG.SelectedData['quantity'].astype('int'))]
-                             ),
-                      Canvas(title=f'Топ стран-импортеров в стоимостной выборке по коду: {input_code}',
-                             showlegend=True,
-                             plots=[PiePlot(labels=PG.SelectedData['g15_name'].astype('str'),
-                                            values=PG.SelectedData['cost'].astype('int'))]
-                             ),
-                      ]
+            canvases=[
+                Canvas(title=f'Топ стран-импортеров в количественной выборке по коду: {input_code} {four_digit_code}',
+                       showlegend=True,
+                       plots=[PiePlot(labels=PG.SelectedData['g15_name'].astype('str'),
+                                      values=PG.SelectedData['quantity'].astype('int'))]
+                       ),
+                Canvas(title=f'Топ стран-импортеров в стоимостной выборке по коду: {input_code} {four_digit_code}',
+                       showlegend=True,
+                       plots=[PiePlot(labels=PG.SelectedData['g15_name'].astype('str'),
+                                      values=PG.SelectedData['cost'].astype('int'))]
+                       ),
+                ]
         ).to_dict()
     )
 
     if input_code.isdigit():
-        gui_dict['plot'].append(
-            Window(
-                window_title='Гистограмма',
-                canvases=[Canvas(title=f'Средняя цена по странам по коду: {input_code}',
-                                 showlegend=False,
-                                 x_title='Страны',
-                                 y_title='Цена, бел. руб',
-                                 plots=[BarPlot(x=PG.summeryCountry['g15_name'].values,
-                                                y=PG.summeryCountry['price'].values
-                                                )]
-                                 ),
-                          ]
-            ).to_dict())
-
         selectedDataOrigCountry = dataset_dt.loc[
             (dataset_dt['g331goodstnvedcode'].astype(str) == input_code.lstrip('0'))]
+        if adding_code:
+            selectedDataOrigCountry = selectedDataOrigCountry.loc[
+                (selectedDataOrigCountry['goodsaddtnvedcode'].astype(str) == four_digit_code.lstrip('0'))]
+
         if selectedDataOrigCountry.empty:
             raise Exception(f'Товаров по коду или типу выбранного товара нет')
 
@@ -218,9 +226,34 @@ def diagram_visualise_acp(
                 ]
             ).to_dict()
         )
+        price_sale = Com.sort_price_sell()
+        gui_dict['plot'].append(
+            Window(
+                window_title='Гистограммы',
+                canvases=[Canvas(title=f'Средняя цена по странам-импортерам по коду: {input_code}',
+                                 showlegend=False,
+                                 x_title='Страны',
+                                 y_title='Цена, бел. руб',
+                                 plots=[BarPlot(x=PG.summeryCountry['g15_name'].values,
+                                                y=PG.summeryCountry['price'].values
+                                                )]
+                                 ),
+                          Canvas(title=f'Средняя цена по странам-производителям по коду: {input_code}',
+                                 showlegend=False,
+                                 x_title='Страны',
+                                 y_title='Цена, бел. руб',
+                                 plots=[BarPlot(x=price_sale['g34origincountryname'].values,
+                                                y=price_sale['price'].values
+                                                )]
+                                 ),
+                          ]
+            ).to_dict())
 
         pd.options.mode.chained_assignment = None
         dataset_dt_filtered = dataset_dt[(dataset_dt['g331goodstnvedcode'] == int(input_code.lstrip('0')))]
+        if adding_code:
+            dataset_dt_filtered = dataset_dt_filtered.loc[
+                (dataset_dt_filtered['goodsaddtnvedcode'].astype(str) == four_digit_code.lstrip('0'))]
 
         if dataset_dt_filtered.empty:
             raise Exception(f'Нет записей по коду {input_code} в декларациях на товарах')
@@ -235,43 +268,15 @@ def diagram_visualise_acp(
 
         pe = PricesESF(dt_data=dt_data)
         sorted_dt_dates, dt_means, weight = pe.get_dt_means_monthly(input_code)
-        weights = [f'Объем: {i // 1000} т' for i in weight]
+        if input_code in TNVED_codes['fridges'] or input_code in TNVED_codes['tires']:
+            weights = [f'Объем: {i} шт.' for i in weight]
+            weight = ['штука'] + weight
+        else:
+            weights = [f'Объем: {i // 1000} т' for i in weight]
         x_list = [pd.array(sorted_dt_dates)]
         y_list = [pd.array(dt_means)]
 
     else:
-        df = selectedData
-
-        df['weighted_cost'] = df['price'] * df['quantity']  # Взвешенная сумма
-
-        grouped_df = df.groupby(['g15_name', 'type']).agg(
-            {'weighted_cost': 'sum', 'quantity': 'sum'})  # Группировка по странам и типам + сумма стоимостей
-        grouped_df['weighted_avg_cost'] = grouped_df['weighted_cost'] / grouped_df['quantity']  # Среднее взвешенное
-        result_df = grouped_df.drop(columns=['weighted_cost', 'quantity']).reset_index()
-
-        if result_df.empty:
-            raise Exception(f'Пустая выборка')
-
-        result_df = result_df.sort_values(by=['weighted_avg_cost'],
-                                          ascending=False)  # Сортировка по средним значениям
-        data_final = result_df.head(5)
-        avg_other = result_df['weighted_avg_cost'][5:].mean()  # Топ 5 и остальное убирается в кучу
-        data_final.loc[1] = ['OTHER', input_code, avg_other]
-
-        gui_dict['plot'].append(
-            Window(
-                window_title='Гистограмма',
-                canvases=[Canvas(title=f'Средняя цена по странам по типу товара: {input_code}',
-                                 showlegend=False,
-                                 x_title='Страны',
-                                 y_title='Цена, бел. руб',
-                                 plots=[BarPlot(x=data_final['g15_name'].values,
-                                                y=data_final['weighted_avg_cost'].values
-                                                )]
-                                 ),
-                          ]
-            ).to_dict())
-
         selectedDataOrigCountry = dataset_dt.loc[(dataset_dt['g331goodstnvedcode'].astype(str).str.lower().isin(
             [tnved_code.lower() for tnved_code in input_codes]))
         ]
@@ -305,6 +310,48 @@ def diagram_visualise_acp(
                 ]
             ).to_dict()
         )
+
+        df = selectedData
+
+        df['weighted_cost'] = df['price'] * df['quantity']  # Взвешенная сумма
+
+        grouped_df = df.groupby(['g15_name', 'type']).agg(
+            {'weighted_cost': 'sum', 'quantity': 'sum'})  # Группировка по странам и типам + сумма стоимостей
+        grouped_df['weighted_avg_cost'] = grouped_df['weighted_cost'] / grouped_df['quantity']  # Среднее взвешенное
+        result_df = grouped_df.drop(columns=['weighted_cost', 'quantity']).reset_index()
+
+        if result_df.empty:
+            raise Exception(f'Пустая выборка')
+
+        result_df = result_df.sort_values(by=['weighted_avg_cost'],
+                                          ascending=False)  # Сортировка по средним значениям
+        data_final = result_df.head(5)
+        avg_other = result_df['weighted_avg_cost'][5:].mean()  # Топ 5 и остальное убирается в кучу
+        data_final.loc[1] = ['OTHER', input_code, avg_other]
+
+        price_sale = Com.sort_price_sell()
+        gui_dict['plot'].append(
+            Window(
+                window_title='Гистограммы',
+                canvases=[Canvas(title=f'Средняя цена по странам-импортерам по типу товара: {input_code}',
+                                 showlegend=False,
+                                 x_title='Страны',
+                                 y_title='Цена, бел. руб',
+                                 plots=[BarPlot(x=data_final['g15_name'].values,
+                                                y=data_final['weighted_avg_cost'].values
+                                                )]
+                                 ),
+                          Canvas(title=f'Средняя цена по странам-производителям по типу товара: {input_code}',
+                                 showlegend=False,
+                                 x_title='Страны',
+                                 y_title='Цена, бел. руб',
+                                 plots=[BarPlot(x=price_sale['g34origincountryname'].values,
+                                                y=price_sale['price'].values
+                                                )]
+                                 ),
+
+                          ]
+            ).to_dict())
 
         pd.options.mode.chained_assignment = None
         dataset_dt_filtered = dataset_dt[
@@ -340,7 +387,7 @@ def diagram_visualise_acp(
 
     gui_dict['plot'].append(
         Window(
-            window_title='Линейный график среднезвешанных цен',
+            window_title='Линейный график среднезвешенных цен',
             canvases=[Canvas(
                 title=f'Средневзвешенные цены продаж по товару {input_code} с {start_date} по {end_date}',
                 x_title="Месяц",

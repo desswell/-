@@ -24,6 +24,25 @@ class PricesESF:
         self.data_esf = esf_data
         self.data_last_esf = last_esf_data
         self.data_check = check_data
+        self.fridges = ['8418102001',
+                        '8418108001',
+                        '8418211000',
+                        '8418215100',
+                        '8418215900',
+                        '8418219100',
+                        '8418219900',
+                        '8418302001',
+                        '8418308001',
+                        '8418402001',
+                        '8418408001']
+        self.tires = ['4011100003',
+                      '4011100009',
+                      '4011201000',
+                      '4011209000',
+                      '4011400000',
+                      '4011700000',
+                      '4011800000',
+                      '4011900000']
 
     def get_dt_means_daily(self):
         """
@@ -69,7 +88,8 @@ class PricesESF:
         # Извлекаем год, месяц и день из даты
         df['year'] = df['dt_date'].dt.year
         df['month'] = df['dt_date'].dt.month
-        if code.isdigit() or code.lower() in 'томаты бананы лимоны':
+        if (code.isdigit() or code.lower() in 'томаты бананы лимоны') and (code not in self.fridges and
+                                                                           code not in self.tires):
             # Рассчитываем сумму (продажи * цена) для каждой строки
             df['total_sales'] = df['g38netweightquantity'] * df['ТС/кг, бел руб']
 
@@ -88,7 +108,7 @@ class PricesESF:
             grouped_weight = df.groupby(['year', 'month'])['g41goodsquantity'].sum().reset_index()
         grouped_weight = grouped_weight.sort_values(['year', 'month'])
 
-        if code.isdigit() or code.lower() in 'томаты бананы лимоны':
+        if (code.isdigit() or code.lower() in 'томаты бананы лимоны') and (code not in self.fridges and code not in self.tires):
             weight = grouped_weight['g38netweightquantity'].tolist()
         else:
             weight = grouped_weight['g41goodsquantity'].tolist()

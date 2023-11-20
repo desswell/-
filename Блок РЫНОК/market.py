@@ -238,19 +238,19 @@ class Market_esf:
         self.data_first_esf['day'] = self.data_first_esf['general_date_transaction'].dt.day
 
         # Рассчитываем значение roster_item_price
-        new_roster_item_price = (
-                self.data_first_esf['roster_item_cost'].sum() / self.data_first_esf['roster_item_count'].sum())
-
-        # Добавляем новый столбец new_roster_item_price к DataFrame
-        self.data_first_esf['new_roster_item_price'] = new_roster_item_price
+        # new_roster_item_price = (
+        #         self.data_first_esf['roster_item_cost'].sum() / self.data_first_esf['roster_item_count'].sum())
+        #
+        # # Добавляем новый столбец new_roster_item_price к DataFrame
+        # self.data_first_esf['new_roster_item_price'] = new_roster_item_price
 
         # Рассчитываем сумму (продажи * цена) для каждой строки
-        self.data_first_esf['total_sales'] = self.data_first_esf['roster_item_count'] * self.data_first_esf[
-            'new_roster_item_price']
+        # self.data_first_esf['total_sales'] = self.data_first_esf['roster_item_count'] * self.data_first_esf[
+        #     'new_roster_item_price']
 
         # Группируем данные по году и месяцу, а затем рассчитываем средневзвешенное значение
         grouped = self.data_first_esf.groupby(['year', 'month', 'day']).apply(
-            lambda x: (x['total_sales']).sum() / x['roster_item_count'].sum()).reset_index()
+            lambda x: (x['roster_item_cost']).sum() / x['roster_item_count'].sum()).reset_index()
         grouped.columns = ['year', 'month', 'day', 'weighted_average_price']
 
         # Возвращаем результаты в виде массивов
@@ -277,19 +277,19 @@ class Market_esf:
         self.data_first_esf['month'] = self.data_first_esf['general_date_transaction'].dt.month
 
         # Рассчитываем значение roster_item_price
-        new_roster_item_price = (
-                self.data_first_esf['roster_item_cost'].sum() / self.data_first_esf['roster_item_count'].sum())
+        # new_roster_item_price = (
+        #         self.data_first_esf['roster_item_cost'].sum() / self.data_first_esf['roster_item_count'].sum())
+        #
+        # # Добавляем новый столбец new_roster_item_price к DataFrame
+        # self.data_first_esf['new_roster_item_price'] = new_roster_item_price
 
-        # Добавляем новый столбец new_roster_item_price к DataFrame
-        self.data_first_esf['new_roster_item_price'] = new_roster_item_price
-
-        # Рассчитываем сумму (продажи * цена) для каждой строки
-        self.data_first_esf['total_sales'] = self.data_first_esf['roster_item_count'] * self.data_first_esf[
-            'new_roster_item_price']
+        # # Рассчитываем сумму (продажи * цена) для каждой строки
+        # self.data_first_esf['total_sales'] = self.data_first_esf['roster_item_count'] * self.data_first_esf[
+        #     'new_roster_item_price']
 
         # Группируем данные по году и месяцу, а затем рассчитываем средневзвешенное значение
         grouped = self.data_first_esf.groupby(['year', 'month']).apply(
-            lambda x: (x['total_sales']).sum() / x['roster_item_count'].sum()).reset_index()
+            lambda x: (x['roster_item_cost']).sum() / x['roster_item_count'].sum()).reset_index()
         grouped.columns = ['year', 'month', 'weighted_average_price']
 
         # Возвращаем результаты в виде массивов

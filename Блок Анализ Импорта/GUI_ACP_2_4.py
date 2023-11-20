@@ -114,6 +114,38 @@
                                         },
                                 },
                         },
+                    'adding_code':
+                        {
+                            'gui_name':
+                                {
+                                    'rus': 'Учет дополнительного кода'
+                                },
+                            'gui_type': 'checkbox',
+                            'gui_default_values':
+                                {
+                                    'rus': False
+                                },
+                        },
+                    'four_digit_code':
+                        {
+                            'gui_name':
+                                {
+                                    'rus': 'Дополнительный код'
+                                },
+                            'gui_type': 'input',
+                            'gui_type_value': 'string',
+                            'gui_default_values':
+                                {
+                                    'rus': '2000'
+                                },
+                            'gui_visible':
+                                {
+                                    'adding_code':
+                                        {
+                                            1: True,
+                                        },
+                                },
+                        },
                 },
         },
 }
