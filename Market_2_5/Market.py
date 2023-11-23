@@ -44,19 +44,19 @@ class Market_ACP:
         self.time_start = pd.to_datetime(self.time_start).strftime('%Y-%m-%d')
         self.time_end = pd.to_datetime(self.time_end).strftime('%Y-%m-%d')
 
-    def search_code_all_company_sale_buy(self):
-        """
-            Функция выборки из датасета по коду товара по продажам и покупкам
-            :return: выборка из pd.dataframe
-        """
-        data_sale_buy_all = self.data.loc[self.data['roster_item_code'] == str(self.code)]
-
-        data_sale_buy_all = data_sale_buy_all.loc[(data_sale_buy_all["general_date_transaction"] >= self.time_start) & (
-                data_sale_buy_all["general_date_transaction"] <= self.time_end)]
-
-        data_sale_buy_all["year_month"] = data_sale_buy_all["general_date_transaction"].dt.to_period("M")
-
-        return data_sale_buy_all
+    # def search_code_all_company_sale_buy(self):
+    #     """
+    #         Функция выборки из датасета по коду товара по продажам и покупкам
+    #         :return: выборка из pd.dataframe
+    #     """
+    #     data_sale_buy_all = self.data.loc[self.data['roster_item_code'] == str(self.code)]
+    #
+    #     data_sale_buy_all = data_sale_buy_all.loc[(data_sale_buy_all["general_date_transaction"] >= self.time_start) & (
+    #             data_sale_buy_all["general_date_transaction"] <= self.time_end)]
+    #
+    #     data_sale_buy_all["year_month"] = data_sale_buy_all["general_date_transaction"].dt.to_period("M")
+    #
+    #     return data_sale_buy_all
 
     def search_code_and_company_sale(self):
         """
@@ -262,7 +262,7 @@ def market_acp(
     """
     avg = Market_ACP(dataset_esf, dataset_checks, code, company, time_start, time_end)
     avg.csv_options()
-    sale_buy_all = avg.search_code_all_company_sale_buy()
+    # sale_buy_all = avg.search_code_all_company_sale_buy()
     sale = avg.search_code_and_company_sale()
     buy = avg.search_code_and_company_buy()
 
@@ -275,7 +275,7 @@ def market_acp(
         return months_diff_sale
 
     # Примените функцию к столбцу datetime и создайте новый столбец с месяцами
-    sale_buy_all['months'] = sale_buy_all['general_date_transaction'].apply(months_since_min_date_sale)
+    # sale_buy_all['months'] = sale_buy_all['general_date_transaction'].apply(months_since_min_date_sale)
 
     # Примените функцию к столбцу datetime и создайте новый столбец с месяцами
     sale['months'] = sale['general_date_transaction'].apply(months_since_min_date_sale)
@@ -283,7 +283,7 @@ def market_acp(
     # Примените функцию к столбцу datetime и создайте новый столбец с месяцами
     buy['months'] = buy['general_date_transaction'].apply(months_since_min_date_sale)
 
-    sale_buy_all = sale_buy_all.groupby('months')['roster_item_price'].mean().reset_index(name='roster_item_price')
+    # sale_buy_all = sale_buy_all.groupby('months')['roster_item_price'].mean().reset_index(name='roster_item_price')
     sale = sale.groupby('months')['roster_item_price'].mean().reset_index(name='roster_item_price')
     buy = buy.groupby('months')['roster_item_price'].mean().reset_index(name='roster_item_price')
 
@@ -294,9 +294,9 @@ def market_acp(
     if not buy.empty:
         plots.append(LinePlot(x=np.array(buy['months']), y=buy['roster_item_price'],
                               names=['Средняя закупочная цена компании']))
-    if not sale_buy_all.empty:
-        plots.append(LinePlot(x=np.array(sale_buy_all['months']), y=sale_buy_all['roster_item_price'],
-                              names=['Средняя закупочная/продажная цена по рынку']))
+    # if not sale_buy_all.empty:
+    #     plots.append(LinePlot(x=np.array(sale_buy_all['months']), y=sale_buy_all['roster_item_price'],
+    #                           names=['Средняя закупочная/продажная цена по рынку']))
     if sale.empty and buy.empty and sale_buy_all.empty:
         pass
     else:

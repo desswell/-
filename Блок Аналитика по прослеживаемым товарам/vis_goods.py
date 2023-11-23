@@ -115,26 +115,26 @@ class monthlyPrices:
                 count_arr.append(count_arr_all[i])
 
         """
-        Добавляем записи по всем шинам без учета кода
+        Добавляем записи по товарам без учета кода
         """
-        flattened_month_arr = []
-        flattened_year_arr = []
-        flattened_price_arr = []
-        flattened_count_arr = []
-        for sublist in month_arr:
-            flattened_month_arr.extend(sublist)
-        for sublist in year_arr:
-            flattened_year_arr.extend(sublist)
-        for sublist in price_arr:
-            flattened_price_arr.extend(sublist)
-        for sublist in count_arr:
-            flattened_count_arr.extend(sublist)
-
-        code_arr.append('All_' + self.name)
-        month_arr.append(flattened_month_arr)
-        year_arr.append(flattened_year_arr)
-        price_arr.append(flattened_price_arr)
-        count_arr.append(flattened_count_arr)
+        # flattened_month_arr = []
+        # flattened_year_arr = []
+        # flattened_price_arr = []
+        # flattened_count_arr = []
+        # for sublist in month_arr:
+        #     flattened_month_arr.extend(sublist)
+        # for sublist in year_arr:
+        #     flattened_year_arr.extend(sublist)
+        # for sublist in price_arr:
+        #     flattened_price_arr.extend(sublist)
+        # for sublist in count_arr:
+        #     flattened_count_arr.extend(sublist)
+        #
+        # code_arr.append('All_' + self.name)
+        # month_arr.append(flattened_month_arr)
+        # year_arr.append(flattened_year_arr)
+        # price_arr.append(flattened_price_arr)
+        # count_arr.append(flattened_count_arr)
 
         """
         Подсчет средневзвешенного значения
@@ -182,33 +182,40 @@ class monthlyPrices:
         sorted_months_arr = []
         sorted_prices_arr = []
 
-        for i in range(len(code_arr)):
-            # Объединяем все данные в один список кортежей
-            combined_data = list(zip(av_year_arr[i], av_month_arr[i], av_price_arr[i]))
+        if len(av_price_arr) > 0:
+            if len(av_price_arr[0]) > 0:
+                for i in range(len(code_arr)):
+                    # Объединяем все данные в один список кортежей
+                    combined_data = list(zip(av_year_arr[i], av_month_arr[i], av_price_arr[i]))
 
-            # Сортируем данные по году и месяцу
-            sorted_data = sorted(combined_data, key=lambda x: (x[0], x[1]))
+                    # Сортируем данные по году и месяцу
+                    sorted_data = sorted(combined_data, key=lambda x: (x[0], x[1]))
 
-            # Разделяем данные обратно в списки
-            sorted_years, sorted_months, sorted_prices = zip(*sorted_data)
+                    # Разделяем данные обратно в списки
+                    sorted_years, sorted_months, sorted_prices = zip(*sorted_data)
 
-            sorted_year_arr.append(sorted_years)
-            sorted_months_arr.append(sorted_months)
-            sorted_prices_arr.append(sorted_prices)
+                    sorted_year_arr.append(sorted_years)
+                    sorted_months_arr.append(sorted_months)
+                    sorted_prices_arr.append(sorted_prices)
 
-        # Преобразуем данные в NumPy Array
-        for i in range(len(sorted_months_arr)):
-            sorted_months_arr[i] = np.array(sorted_months_arr[i])
-            sorted_year_arr[i] = np.array(sorted_year_arr[i])
-            sorted_prices_arr[i] = np.array(sorted_prices_arr[i])
+                # Преобразуем данные в NumPy Array
+                for i in range(len(sorted_months_arr)):
+                    sorted_months_arr[i] = np.array(sorted_months_arr[i])
+                    sorted_year_arr[i] = np.array(sorted_year_arr[i])
+                    sorted_prices_arr[i] = np.array(sorted_prices_arr[i])
 
+                # Поиск минимального года
+                min_year = sorted_year_arr[0][0]
+                for i in range(len(sorted_year_arr)):
+                    for j in range(len(sorted_year_arr[i])):
+                        if sorted_year_arr[i][j] < min_year:
+                            min_year = sorted_year_arr[i][j]
 
-        # Замена значений месяцев в соответствии с годом
-        for i in range(len(sorted_months_arr)):
-            for j in range(len(sorted_months_arr[i])):
-                if sorted_year_arr[i][j] == 2023:
-                    sorted_months_arr[i][j] += 12
-
+                # Замена значений месяцев в соответствии с годом
+                for i in range(len(sorted_months_arr)):
+                    for j in range(len(sorted_months_arr[i])):
+                        if sorted_year_arr[i][j] > min_year:
+                            sorted_months_arr[i][j] = sorted_months_arr[i][j] + 12 * (sorted_year_arr[i][j] - min_year)
 
         return code_arr, sorted_months_arr, sorted_year_arr, sorted_prices_arr
 
@@ -226,7 +233,8 @@ class Chain:
     def __init__(self, dataset, include_company, company_unp):
         """
         :param pd.DateFrame: датасет
-        :param bool: фильтрация по коду конкретной компании
+        :param bool: фильтрация по УНП конкретной компании
+        :param str: УНП компании
         """
         self.data = dataset
         self.in_company = include_company
@@ -288,6 +296,21 @@ class Chain:
 
         return result
 
+    def read_etn_nums(self):
+        """
+        Функция чтения цепочек номеров ЕТН
+        """
+        result = []
+
+        for index, row in self.data.iterrows():
+            nums = row['etns']
+            etns = re.findall(r'\{([^\}]+)\}', nums)
+            etns_array = etns[0].split(',')
+            etns_array = [str(etn) for etn in etns_array]
+            result.append(etns_array)
+
+        return result
+
     def read_etn_unps(self):
         """
         Функция чтения цепочек унп ЕТН
@@ -336,6 +359,14 @@ class Chain:
         dts = [int(dt) for dt in dts]
         return dts
 
+    def read_dt_nums(self):
+        """
+        Функция чтения номеров dt
+        """
+        dts = self.data['nom_reg'].tolist()
+        dts = [str(dt) for dt in dts]
+        return dts
+
     def read_dt_unps(self):
         """
         Функция чтения унп dt
@@ -378,6 +409,14 @@ class Chain:
         checks = [int(check) for check in checks]
         return checks
 
+    def read_check_nums(self):
+        """
+        Функция чтения номеров check
+        """
+        checks = self.data['numbers'].tolist()
+        checks = [str(check) for check in checks]
+        return checks
+
     def read_check_unps(self):
         """
         Функция чтения унп check
@@ -402,21 +441,26 @@ class Chain:
 
         return lineitemids
 
-    def filter_chains(self, icc, months, prices, target_code, target_size):
+    def filter_chains(self, icc, months, prices, nums, unps, target_codes, target_size):
         """
         Функция фильтрации цепочек по размеру и коду
         """
         filtered_months = []
         filtered_prices = []
+        filtered_nums = []
+        filtered_unps = []
 
         for i, code in enumerate(icc):
-            if code == target_code and len(months[i]) == target_size + 2:
+            if str(code) in target_codes and len(months[i]) == target_size + 2:
+                print(0)
                 filtered_months.append(months[i])
                 filtered_prices.append(prices[i])
+                filtered_nums.append(nums[i])
+                filtered_unps.append(unps[i])
 
-        return filtered_months, filtered_prices
+        return filtered_months, filtered_prices, filtered_nums, filtered_unps
 
-    def get_average_chains(self, target_code, target_size):
+    def get_average_chains(self, target_codes, target_size):
         """
         Функция вычисления средневзвешенных значений цен для всех цепочек
         """
@@ -425,6 +469,7 @@ class Chain:
         months = self.read_etn_months()  # Все месяцы
         years = self.read_etn_years()  # Все года
         counts = self.read_etn_counts()  # Все количества
+        nums = self.read_etn_nums()  # Все номера
         unps = self.read_etn_unps() # Все УНП
 
         # ЧТЕНИЕ DT
@@ -432,6 +477,7 @@ class Chain:
         dt_months = self.read_dt_months()
         dt_years = self.read_dt_years()
         dt_counts = self.read_dt_counts()
+        dt_nums = self.read_dt_nums()
         dt_unps = self.read_dt_unps()
 
         # ЧТЕНИЕ CHECK
@@ -439,6 +485,7 @@ class Chain:
         check_months = self.read_check_months()
         check_years = self.read_check_years()
         check_counts = self.read_check_counts()
+        check_nums = self.read_check_nums()
         check_unps = self.read_check_unps()
 
         # ЧТЕНИЕ КОДОВ И GTIN
@@ -474,12 +521,16 @@ class Chain:
             prices[i].append(check_prices[i])
             counts[i].insert(0, dt_counts[i])
             counts[i].append(check_counts[i])
+            nums[i].insert(0, dt_nums[i])
+            nums[i].append(check_nums[i])
             unps[i].insert(0, dt_unps[i])
             unps[i].append(check_unps[i])
 
         correct_unp_months = []
         correct_unp_prices = []
         correct_unp_counts = []
+        correct_unp_nums = []
+        correct_unp_unps = []
         correct_unp_icc = []
         correct_unp_lid = []
 
@@ -494,6 +545,8 @@ class Chain:
                     correct_unp_months.append(months[i])
                     correct_unp_prices.append(prices[i])
                     correct_unp_counts.append(counts[i])
+                    correct_unp_nums.append(nums[i])
+                    correct_unp_unps.append(unps[i])
                     correct_unp_icc.append(icc[i])
                     correct_unp_lid.append(lid[i])
         else:
@@ -501,6 +554,8 @@ class Chain:
                 correct_unp_months.append(months[i])
                 correct_unp_prices.append(prices[i])
                 correct_unp_counts.append(counts[i])
+                correct_unp_nums.append(nums[i])
+                correct_unp_unps.append(unps[i])
                 correct_unp_icc.append(icc[i])
                 correct_unp_lid.append(lid[i])
 
@@ -511,6 +566,8 @@ class Chain:
         filtered_months = []
         filtered_prices = []
         filtered_counts = []
+        filtered_nums = []
+        filtered_unps = []
         filtered_icc = []
         filtered_lid = []
 
@@ -519,6 +576,8 @@ class Chain:
                 filtered_months.append(correct_unp_months[i])
                 filtered_prices.append(correct_unp_prices[i])
                 filtered_counts.append(correct_unp_counts[i])
+                filtered_nums.append(correct_unp_nums[i])
+                filtered_unps.append(correct_unp_unps[i])
                 filtered_icc.append(correct_unp_icc[i])
                 filtered_lid.append(correct_unp_lid[i])
 
@@ -529,7 +588,7 @@ class Chain:
         agg_data = {}
 
         for i in range(len(filtered_icc)):
-            key = (tuple(filtered_months[i]), filtered_icc[i], filtered_lid[i])  # создаем ключ для идентификации уникальной цепочки и кода icc
+            key = (tuple(filtered_months[i]), filtered_icc[i], filtered_lid[i], tuple(filtered_nums[i]), tuple(filtered_unps[i]))  # создаем ключ для идентификации уникальной цепочки и кода icc
             if key not in agg_data:
                 agg_data[key] = {'prices_sum': np.array(filtered_prices[i]),
                                  'counts_sum': np.array(filtered_counts[i]),
@@ -550,37 +609,47 @@ class Chain:
         lid_result = []  # Массив значений gtin
         months_result = []  # Массив значений оси X
         prices_result = []  # Массив значений оси Y
+        nums_result = [] # Массив значений номеров
+        unps_result = []  # Массив значений УНП компаний
 
         for key, val in agg_data.items():
             icc_result.append(key[1])
             lid_result.append(key[2])
             months_result.append(list(key[0]))
             prices_result.append(np.round(val['prices_avg'], 2))
+            nums_result.append(list(key[3]))
+            unps_result.append(list(key[4]))
+
 
         # Преобразование выходных данных в нужный формат
         months_result = np.array(months_result, dtype='object')
         prices_result = np.array(prices_result, dtype='object')
+        nums_result = np.array(nums_result, dtype='object')
+        unps_result = np.array(unps_result, dtype='object')
+
 
         # Фильтрация выходных данных по длине цепочки и по коду
-        filtered_months_result, filtered_prices_result = self.filter_chains(icc_result,
-                                                                       months_result,
-                                                                       prices_result,
-                                                                       target_code,
-                                                                       target_size)
+        filtered_months_result, filtered_prices_result, filtered_nums_result, filtered_unps_result = self.filter_chains(icc_result,
+                                                                                                  months_result,
+                                                                                                  prices_result,
+                                                                                                  nums_result,
+                                                                                                  unps_result,
+                                                                                                  target_codes,
+                                                                                                  target_size)
 
-        return filtered_months_result, filtered_prices_result
+        return filtered_months_result, filtered_prices_result, filtered_nums_result, filtered_unps_result
 
 
 def monthly_prices_visualise(
         dataset: pd.DataFrame,
         input_code: str = '',
         chain_flag: bool = False,
-        size_chain: int = 1,
         date_dt: str = '',
         date_check: str = '',
         all_interval: bool = False,
         include_company: bool = False,
         company_unp: str = '',
+        size_chain: int = 1
 ):
     """
     :code_assign: users
@@ -593,12 +662,12 @@ def monthly_prices_visualise(
     :param_block pd.DataFrame dataset: датасет
     :param str input_code: выбранная категория
     :param bool chain_flag: флаг для построения цепочек
-    :param int size_chain: размер цепочки
     :param str date_dt: дата ДТ
     :param str date_check: дата чека
     :param bool all_interval: все цепочки внутри интервала дат
     :param bool include_company: цепочки по коду определенной компании
     :param str company_unp: унп компании
+    :param int size_chain: размер цепочки
     :returns: gui_dict, error
     :rtype: dict, str
     :semrtype: ,
@@ -613,26 +682,39 @@ def monthly_prices_visualise(
     else:
         codes = [input_code]
 
-    code_arr_t, sorted_months_arr_t, sorted_year_arr_t, sorted_prices_arr_t = MP.get_monthly_prices(dataset,
-                                                                                                    codes)
     canvases = []
-    for price, month, code, years in zip(sorted_prices_arr_t, sorted_months_arr_t, code_arr_t, sorted_year_arr_t):
+    if not dataset.empty:
+        code_arr_t, sorted_months_arr_t, sorted_year_arr_t, sorted_prices_arr_t = MP.get_monthly_prices(dataset,
+                                                                                                        codes)
+        for price, month, code, years in zip(sorted_prices_arr_t, sorted_months_arr_t, code_arr_t, sorted_year_arr_t):
+            plots = []
+            x = []
+            y = []
+            for year in sorted(list(set(years))):
+                if plots:
+                    x = [x[-1]]
+                    y = [y[-1]]
+                else:
+                    x = []
+                    y = []
+                for i in [j for j in range(len(years)) if years[j] == year]:
+                    x.append(month[i])
+                    y.append(price[i])
+                plots.append(LinePlot(x=np.array(x), y=np.array(y), names=[f'Год {year}']))
+            canvases.append(
+                Canvas(title=f'Код {code}',
+                       x_title='Месяц',
+                       y_title='Цена, бел. руб',
+                       showlegend=True,
+                       plots=plots
+                       )
+            )
+    else:
         plots = []
-        x = []
-        y = []
-        for year in sorted(list(set(years))):
-            if plots:
-                x = [x[-1]]
-                y = [y[-1]]
-            else:
-                x = []
-                y = []
-            for i in [j for j in range(len(years)) if years[j] == year]:
-                x.append(month[i])
-                y.append(price[i])
-            plots.append(LinePlot(x=np.array(x), y=np.array(y), names=[f'Год {year}']))
         canvases.append(
-            Canvas(title=f'Код {code}',
+            Canvas(title='Все коды',
+                   x_title='Месяц',
+                   y_title='Цена, бел. руб',
                    showlegend=True,
                    plots=plots
                    )
@@ -652,33 +734,46 @@ def monthly_prices_visualise(
     else:
         data_right_dates = dataset[(dataset['dt_date'] == date_dt) & (dataset['issued_at'] == date_check)]
 
-    if not data_right_dates.empty:
-        if chain_flag:
+    if chain_flag:
+        plots = []
+        if not data_right_dates.empty:
             CH = Chain(data_right_dates, include_company, company_unp)
-            x_points_arr, y_points_arr = CH.get_average_chains(int(input_code), int(size_chain))
-            plots = []
-            text = [[f"DT"] + ["ETN" + str(i) for i in range(1, size_chain + 1)] + [f"Check"]]
-            for x, y in zip(x_points_arr, y_points_arr):
-                plots.append(LinePlot(x=np.array(x), y=y, names=[f'Месяц: {"-".join(map(str, x))}']))
-                plots.append(Scatter2DPlot(x=np.array(x), y=y, names=[f'Месяц: {"-".join(map(str, x))}'], text=text,
-                                           marker=[dict(color="black")]))
-            gui_dict['plot'].append(
-                Window(
-                    window_title='Цепочка продаж - линейный график',
-                    canvases=[Canvas(
-                        title=f'Цепочка продаж {input_code} размерностью {size_chain}',
-                        x_title='Цепочка',
-                        y_title='Цена',
-                        showlegend=True,
-                        plots=plots)]
-                ).to_dict()
-            )
-    else:
-        raise Exception(f'Нет цепочек по коду {str(target_code)} с указанными датами ДТ и чек')
+            x_points_arr, y_points_arr, nums_arr, unps_arr = CH.get_average_chains(codes, size_chain)
+            if len(x_points_arr) != 0 and len(y_points_arr) != 0 and len(nums_arr) != 0:
+
+                text = [[f"DT"] + ["ETN" + str(i) for i in range(1, size_chain + 1)] + [f"Check"]]
+
+                for x, y, n, u in zip(x_points_arr, y_points_arr, nums_arr, unps_arr):
+                    plots.append(LinePlot(x=np.array(x), y=y, names=[f'Месяц: {"-".join(map(str, x))}']))
+                    plots.append(Scatter2DPlot(x=np.array(x), y=y, names=[f'Месяц: {"-".join(map(str, x))}'], text=[[text[0][i]+'\n'+n[i]+'\n'+str(u[i]) for i in range(len(text[0]))]],
+                                               marker=[dict(color="black")]))
+
+        gui_dict['plot'].append(
+            Window(
+                window_title='Цепочка продаж - линейный график',
+                canvases=[Canvas(
+                    title=f'Цепочка продаж по категории {input_code} размерностью {size_chain}',
+                    x_title='Цепочка',
+                    y_title='Цена, бел. руб',
+                    showlegend=True,
+                    plots=plots)]
+            ).to_dict()
+        )
 
     return gui_dict, error
 
 
+# Чтение файла
+filename = 'test_view_10000.csv'
 
+dataset = pd.read_csv(filename)
+input_code = 'Холодильники'    # Код itemcustomcode
+chain_flag = True
+date_dt = '2022-08-01'
+date_check = '2022-11-12'
+all_interval = False
+include_company = True
+company_unp = '700474487'
+size_chain = 2             # Длина цепочки
 
-
+error = monthly_prices_visualise(dataset, input_code, chain_flag, date_dt, date_check, all_interval, include_company, company_unp, size_chain)

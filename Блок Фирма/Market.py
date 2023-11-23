@@ -5,7 +5,7 @@ class Market_ACP:
     :imports: Canvas, BarPlot
     :packages:
     import pandas as pd
-    
+
     """
 
     def __init__(self, data, dataset_checks, code, company, time_start, time_end):
@@ -44,19 +44,19 @@ class Market_ACP:
         self.time_start = pd.to_datetime(self.time_start).strftime('%Y-%m-%d')
         self.time_end = pd.to_datetime(self.time_end).strftime('%Y-%m-%d')
 
-    def search_code_all_company_sale_buy(self):
-        """
-            Функция выборки из датасета по коду товара по продажам и покупкам
-            :return: выборка из pd.dataframe
-        """
-        data_sale_buy_all = self.data.loc[self.data['roster_item_code'] == str(self.code)]
-
-        data_sale_buy_all = data_sale_buy_all.loc[(data_sale_buy_all["general_date_transaction"] >= self.time_start) & (
-                data_sale_buy_all["general_date_transaction"] <= self.time_end)]
-
-        data_sale_buy_all["year_month"] = data_sale_buy_all["general_date_transaction"].dt.to_period("M")
-
-        return data_sale_buy_all
+    # def search_code_all_company_sale_buy(self):
+    #     """
+    #         Функция выборки из датасета по коду товара по продажам и покупкам
+    #         :return: выборка из pd.dataframe
+    #     """
+    #     data_sale_buy_all = self.data.loc[self.data['roster_item_code'] == str(self.code)]
+    #
+    #     data_sale_buy_all = data_sale_buy_all.loc[(data_sale_buy_all["general_date_transaction"] >= self.time_start) & (
+    #             data_sale_buy_all["general_date_transaction"] <= self.time_end)]
+    #
+    #     data_sale_buy_all["year_month"] = data_sale_buy_all["general_date_transaction"].dt.to_period("M")
+    #
+    #     return data_sale_buy_all
 
     def search_code_and_company_sale(self):
         """
@@ -110,7 +110,6 @@ class Market_ACP:
         data_nw = data[(data['g331goodstnvedcode'] == self.code) & (data['g14rbunp'] == self.company)]
         return data_nw
 
-
     def read_data_ch(self):
         """
         Функция чтения файла по Чекам
@@ -136,15 +135,17 @@ class Market_ACP:
         if grouped_df.empty:
             pass
         else:
-            self.canvass.append(Canvas(title=f'Объем ценового рынка компании {self.company} по ДТ по коду товара: {self.code}',
-                                       showlegend=False,
-                                       x_title='Дата',
-                                       y_title='Цена',
-                                       plots=[BarPlot(x=grouped_df['dt_date'].values,
-                                                      y=grouped_df['total_amount'].values
-                                                      )]
-                                       )
-                                )
+            self.canvass.append(
+                Canvas(title=f'Объём импорта компании {self.company} по коду: {self.code} в стоимостном выражении'
+                             f'',
+                       showlegend=False,
+                       x_title='Дата',
+                       y_title='Стоимость в бел. руб. BYN',
+                       plots=[BarPlot(x=grouped_df['dt_date'].values,
+                                      y=grouped_df['total_amount'].values
+                                      )]
+                       )
+                )
 
     def show_quantity_by_dt(self):
         """
@@ -157,15 +158,16 @@ class Market_ACP:
         if grouped_df.empty:
             pass
         else:
-            self.canvass.append(Canvas(title=f'Объем количественного рынка компании {self.company}  по ДТ по коду товара: {self.code}',
-                                       showlegend=False,
-                                       x_title='Дата',
-                                       y_title='Кол-во в КГ',
-                                       plots=[BarPlot(x=grouped_df['dt_date'].values,
-                                                      y=grouped_df['g38netweightquantity'].values
-                                                      )]
-                                       )
-                                )
+            self.canvass.append(
+                Canvas(title=f'Объём импорта компании {self.company}  по коду: {self.code} в количественном выражении',
+                       showlegend=False,
+                       x_title='Дата',
+                       y_title='Кол-во в КГ',
+                       plots=[BarPlot(x=grouped_df['dt_date'].values,
+                                      y=grouped_df['g38netweightquantity'].values
+                                      )]
+                       )
+                )
 
     def show_sells_by_check(self):
         """
@@ -179,15 +181,16 @@ class Market_ACP:
         if grouped_df.empty:
             pass
         else:
-            self.canvass.append(Canvas(title=f'Объем ценового рынка компании {self.company}  по Чекам по коду товара: {self.code}',
-                                       showlegend=False,
-                                       x_title='Дата',
-                                       y_title='Цена',
-                                       plots=[BarPlot(x=grouped_df['issued_at'].values,
-                                                      y=grouped_df['total_amount'].values
-                                                      )]
-                                       )
-                                )
+            self.canvass.append(
+                Canvas(title=f'Объем продаж компании {self.company} по коду: {self.code} в стоимостном выражении',
+                       showlegend=False,
+                       x_title='Дата',
+                       y_title='Стоимость в бел. руб. BYN',
+                       plots=[BarPlot(x=grouped_df['issued_at'].values,
+                                      y=grouped_df['total_amount'].values
+                                      )]
+                       )
+                )
 
     def show_quantity_by_check(self):
         """
@@ -200,15 +203,16 @@ class Market_ACP:
         if grouped_df.empty:
             pass
         else:
-            self.canvass.append(Canvas(title=f'Объем количественного рынка компании {self.company}  по Чекам по коду товара: {self.code}',
-                                       showlegend=False,
-                                       x_title='Дата',
-                                       y_title='Кол-во в КГ',
-                                       plots=[BarPlot(x=grouped_df['issued_at'].values,
-                                                      y=grouped_df['position_count'].values
-                                                      )]
-                                       )
-                                )
+            self.canvass.append(
+                Canvas(title=f'Объем продаж компании {self.company} по коду: {self.code} в количественном выражении',
+                       showlegend=False,
+                       x_title='Дата',
+                       y_title='Кол-во в КГ',
+                       plots=[BarPlot(x=grouped_df['issued_at'].values,
+                                      y=grouped_df['position_count'].values
+                                      )]
+                       )
+                )
 
 
 def market_acp(
@@ -261,12 +265,11 @@ def market_acp(
     """
     avg = Market_ACP(dataset_esf, dataset_checks, code, company, time_start, time_end)
     avg.csv_options()
-    sale_buy_all = avg.search_code_all_company_sale_buy()
+    # sale_buy_all = avg.search_code_all_company_sale_buy()
     sale = avg.search_code_and_company_sale()
     buy = avg.search_code_and_company_buy()
 
-    # Найдите минимальную дату в столбце
-    min_date = sale_buy_all['general_date_transaction'].min()
+    min_date = time_start
     min_date = pd.to_datetime(min_date)
 
     # Функция для вычисления разницы в месяцах
@@ -275,7 +278,7 @@ def market_acp(
         return months_diff_sale
 
     # Примените функцию к столбцу datetime и создайте новый столбец с месяцами
-    sale_buy_all['months'] = sale_buy_all['general_date_transaction'].apply(months_since_min_date_sale)
+    # sale_buy_all['months'] = sale_buy_all['general_date_transaction'].apply(months_since_min_date_sale)
 
     # Примените функцию к столбцу datetime и создайте новый столбец с месяцами
     sale['months'] = sale['general_date_transaction'].apply(months_since_min_date_sale)
@@ -283,7 +286,7 @@ def market_acp(
     # Примените функцию к столбцу datetime и создайте новый столбец с месяцами
     buy['months'] = buy['general_date_transaction'].apply(months_since_min_date_sale)
 
-    sale_buy_all = sale_buy_all.groupby('months')['roster_item_price'].mean().reset_index(name='roster_item_price')
+    # sale_buy_all = sale_buy_all.groupby('months')['roster_item_price'].mean().reset_index(name='roster_item_price')
     sale = sale.groupby('months')['roster_item_price'].mean().reset_index(name='roster_item_price')
     buy = buy.groupby('months')['roster_item_price'].mean().reset_index(name='roster_item_price')
 
@@ -294,9 +297,9 @@ def market_acp(
     if not buy.empty:
         plots.append(LinePlot(x=np.array(buy['months']), y=buy['roster_item_price'],
                               names=['Средняя закупочная цена компании']))
-    if not sale_buy_all.empty:
-        plots.append(LinePlot(x=np.array(sale_buy_all['months']), y=sale_buy_all['roster_item_price'],
-                              names=['Средняя закупочная/продажная цена по рынку']))
+    # if not sale_buy_all.empty:
+    #     plots.append(LinePlot(x=np.array(sale_buy_all['months']), y=sale_buy_all['roster_item_price'],
+    #                           names=['Средняя закупочная/продажная цена по рынку']))
     if sale.empty and buy.empty and sale_buy_all.empty:
         pass
     else:
@@ -304,9 +307,9 @@ def market_acp(
             Window(
                 window_title='Смена средней продажной цены',
                 canvases=[Canvas(
-                    title=f'Смена средней продажной цены у компании с кодом {company} по товару {code} в интервале от {time_start} до {time_end}',
+                    title=f'Цена продажи и закупки товара {code} компанией {company} в интервале от {time_start} до {time_end}',
                     x_title='Месяц',
-                    y_title='Цена',
+                    y_title='Цена (бел руб)',
                     showlegend=True,
                     plots=plots)]
             ).to_dict()
@@ -316,39 +319,28 @@ def market_acp(
     sale = total.search_code_and_company_sale()
     buy = total.search_code_and_company_buy()
 
-    # Найдите минимальную дату в столбце
-    min_date_sale = sale['general_date_transaction'].min()
-    min_date_sale = pd.to_datetime(min_date_sale)
+    min_date = time_start
+    min_date = pd.to_datetime(min_date)
 
     # Функция для вычисления разницы в месяцах
-    def months_since_min_date_sale(date):
-        months_diff_sale = (date.year - min_date_sale.year) * 12 + (date.month - min_date_sale.month) + 1
-        return months_diff_sale
+    def months_since_min_date(date):
+        months_diff = (date.year - min_date.year) * 12 + (date.month - min_date.month) + 1
+        return months_diff
 
         # Примените функцию к столбцу datetime и создайте новый столбец с месяцами
 
-    sale['months'] = sale['general_date_transaction'].apply(months_since_min_date_sale)
+    sale['months'] = sale['general_date_transaction'].apply(months_since_min_date)
 
-    # Найдите минимальную дату в столбце
-    min_date_buy = buy['general_date_transaction'].min()
-    min_date_buy = pd.to_datetime(min_date_buy)
+    buy['months'] = buy['general_date_transaction'].apply(months_since_min_date)
 
-    # Функция для вычисления разницы в месяцах
-    def months_since_min_date_buy(date):
-        months_diff_buy = (date.year - min_date_buy.year) * 12 + (date.month - min_date_buy.month) + 1
-        return months_diff_buy
-
-        # Примените функцию к столбцу datetime и создайте новый столбец с месяцами
-
-    buy['months'] = buy['general_date_transaction'].apply(months_since_min_date_buy)
-    sale = sale.groupby('months')['roster_item_price'].sum().reset_index(name='roster_item_price')
-    buy = buy.groupby('months')['roster_item_price'].sum().reset_index(name='roster_item_price')
+    sale = sale.groupby('months')['roster_item_count'].sum().reset_index(name='roster_item_count')
+    buy = buy.groupby('months')['roster_item_count'].sum().reset_index(name='roster_item_count')
     plots = []
     if not sale.empty:
-        plots.append(LinePlot(x=np.array(sale['months']), y=sale['roster_item_price'],
+        plots.append(LinePlot(x=np.array(sale['months']), y=sale['roster_item_count'],
                               names=['Количество проданных товаров']))
     if not buy.empty:
-        plots.append(LinePlot(x=np.array(buy['months']), y=buy['roster_item_price'],
+        plots.append(LinePlot(x=np.array(buy['months']), y=buy['roster_item_count'],
                               names=['Количество закупленных товаров']))
     if sale.empty and buy.empty:
         pass
@@ -359,7 +351,7 @@ def market_acp(
                 canvases=[Canvas(
                     title=f'Объем закупок и продаж у компании с кодом {company} по товару {code} в интервале от {time_start} до {time_end}',
                     x_title='Месяц',
-                    y_title='Количество',
+                    y_title='Количество кг',
                     showlegend=True,
                     plots=plots)]
             ).to_dict()

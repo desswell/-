@@ -17,9 +17,14 @@ class PrintGraphByCode_visulise:
         self.summeryCountry = pd.DataFrame
         self.threshold_value = threshold_value / 100
 
+
     def selected_data(self):
         if self.input_code.isdigit():
-            self.summeryCountry = self.SelectedData.sort_values(by='price', ascending=False)
+            self.summeryCountry = self.SelectedData.groupby(['g15_name']).agg({
+                'quantity': 'sum',
+                'cost': 'sum',
+            }).reset_index()
+            self.summeryCountry['price']=self.summeryCountry['cost']/self.summeryCountry['quantity']
             unit = self.summeryCountry.groupby(['g15_name'])['price'].mean().reset_index()
             if unit.shape[0] > 5:
                 unit = unit.sort_values(by='price', ascending=False).reset_index()
@@ -28,6 +33,7 @@ class PrintGraphByCode_visulise:
                 other_data = pd.DataFrame({'g15_name': ['OTHER'], 'price': [other_contry]})
                 self.summeryCountry = pd.concat([top_five, other_data], ignore_index=True)
             else:
+                unit = unit.sort_values(by='price', ascending=False).reset_index()
                 self.summeryCountry = unit
         self.SelectedData.loc[
             self.SelectedData['g15_name'].isna(), 'g15_name'
@@ -49,8 +55,8 @@ def diagram_visualise_acp(
         dataset_dt: pd.DataFrame,
         input_code: str = '803901000',
         threshold_value: float = 2.0,
-        start_date: str = '2021-01-01',
-        end_date: str = '2023-12-31',
+        start_date: str = '2022-01-01',
+        end_date: str = '2023-06-30',
         linear_regression: bool = False,
         step_regression: int = 1,
         adding_code: bool = False,
@@ -79,6 +85,52 @@ def diagram_visualise_acp(
     """
     error = ""
     gui_dict = init_gui_dict()
+    DOP_codes = {
+        'fridges': ['1000',
+                    '2000'],
+        'tires_3': ['1100',
+                    '1200',
+                    '1300',
+                    '1400',
+                    '2100',
+                    '2200',
+                    '2300',
+                    '2400',
+                    '3100',
+                    '3200',
+                    '3300',
+                    '3400'],
+        'tires_9': ['1100',
+                    '1200',
+                    '1300',
+                    '1400',
+                    '1500',
+                    '1600',
+                    '1700',
+                    '1900',
+                    '2100',
+                    '2200',
+                    '2300',
+                    '2400',
+                    '2500',
+                    '2600',
+                    '2700',
+                    '2900',
+                    '3100',
+                    '3200',
+                    '3300',
+                    '3400',
+                    '3500',
+                    '3600',
+                    '3700',
+                    '3900'],
+        'tomato': ['1000',
+                    '2000',
+                    '9000'],
+        'lemons': ['1000',
+                    '2000'],
+        
+    }
     TNVED_codes = {
         'fridges': ['8418102001',
                     '8418108001',
@@ -107,22 +159,10 @@ def diagram_visualise_acp(
                    '702000006',
                    '702000007',
                    '702000009'],
-        'lemons': ['805501000',
-                   '80550100',
-                   '8055010',
-                   '805501',
-                   '80550',
-                   '8055',
-                   '805',
+        'lemons': ['805501000'
                    ],
         'banana': [
-            '803901000',
-            '80390100',
-            '8039010',
-            '803901',
-            '80390',
-            '8039',
-            '803'
+            '803901000'
         ]
     }
     if dataset_dt.empty:
@@ -155,12 +195,12 @@ def diagram_visualise_acp(
             raise Exception(f'Кодов ТН ВЭД по вашему товару нет')
     selectedData = dataset_import.loc[(dataset_import['g331goodstnvedcode'].astype(str) == input_code.lstrip('0')) |
                                       (dataset_import['type'].str.lower().str.contains(input_code.lower()))]
-    if input_code.isdigit():
-        if adding_code:
-            selectedData = selectedData.loc[
-                (selectedData['goodsaddtnvedcode'].astype(str) == four_digit_code.lstrip('0'))]
-        else:
-            four_digit_code = ''
+    
+    if adding_code:
+        selectedData = selectedData.loc[
+            (selectedData['goodsaddtnvedcode'].astype(str) == four_digit_code.lstrip('0'))]
+    else:
+        four_digit_code = ''
     if selectedData.empty:
         raise Exception(f'Товаров по коду или типу выбранного товара нет')
     selectedData['import_date'] = pd.to_datetime(selectedData['import_date'])
@@ -195,13 +235,15 @@ def diagram_visualise_acp(
         if adding_code:
             selectedDataOrigCountry = selectedDataOrigCountry.loc[
                 (selectedDataOrigCountry['goodsaddtnvedcode'].astype(str) == four_digit_code.lstrip('0'))]
+        else:
+            four_digit_code = ''
 
         if selectedDataOrigCountry.empty:
             raise Exception(f'Товаров по коду или типу выбранного товара нет')
 
         selectedDataOrigCountry.loc[:, 'dt_date'] = pd.to_datetime(selectedDataOrigCountry['dt_date'])
         selected_data_orig_country = selectedDataOrigCountry.loc[
-            (selectedDataOrigCountry["dt_date"] >= date_start) & (selectedDataOrigCountry["dt_date"] <= date_end)]
+            (selectedDataOrigCountry["dt_date"] >= start_date) & (selectedDataOrigCountry["dt_date"] <= end_date)]
         if selected_data_orig_country.empty:
             raise Exception(f'Товаров по коду или типу выбранного товара нет в заданном интервале нет')
         Com = Top_OriginCountry_Cost_Count1(selected_data_orig_country, input_code, threshold_value)
@@ -212,13 +254,13 @@ def diagram_visualise_acp(
             Window(
                 window_title='Топ стран-производителей',
                 canvases=[Canvas(
-                    title=f'Топ стран-производителей в количественной выборке по коду: {input_code}',
+                    title=f'Топ стран-производителей в количественной выборке по коду: {input_code} {four_digit_code}',
                     showlegend=True,
                     plots=[PiePlot(labels=count_sale['g34origincountryname'].astype('str'),
                                    values=count_sale['count'].astype('int'))]
                 ),
                     Canvas(
-                        title=f'Топ стран-производителей в стоимостной выборке по коду: {input_code}',
+                        title=f'Топ стран-производителей в стоимостной выборке по коду: {input_code} {four_digit_code}',
                         showlegend=True,
                         plots=[PiePlot(labels=cost_sale['g34origincountryname'].astype('str'),
                                        values=cost_sale['cost'].astype('int'))]
@@ -230,7 +272,7 @@ def diagram_visualise_acp(
         gui_dict['plot'].append(
             Window(
                 window_title='Гистограммы',
-                canvases=[Canvas(title=f'Средняя цена по странам-импортерам по коду: {input_code}',
+                canvases=[Canvas(title=f'Средняя цена по странам-импортерам по коду: {input_code} {four_digit_code}',
                                  showlegend=False,
                                  x_title='Страны',
                                  y_title='Цена, бел. руб',
@@ -238,7 +280,7 @@ def diagram_visualise_acp(
                                                 y=PG.summeryCountry['price'].values
                                                 )]
                                  ),
-                          Canvas(title=f'Средняя цена по странам-производителям по коду: {input_code}',
+                          Canvas(title=f'Средняя цена по странам-производителям по коду: {input_code} {four_digit_code}',
                                  showlegend=False,
                                  x_title='Страны',
                                  y_title='Цена, бел. руб',
@@ -254,9 +296,11 @@ def diagram_visualise_acp(
         if adding_code:
             dataset_dt_filtered = dataset_dt_filtered.loc[
                 (dataset_dt_filtered['goodsaddtnvedcode'].astype(str) == four_digit_code.lstrip('0'))]
+        else:
+            four_digit_code = ''
 
         if dataset_dt_filtered.empty:
-            raise Exception(f'Нет записей по коду {input_code} в декларациях на товарах')
+            raise Exception(f'Нет записей по коду {input_code} {four_digit_code} в декларациях на товары')
 
         start_date = pd.to_datetime(start_date)
         end_date = pd.to_datetime(end_date)
@@ -277,15 +321,22 @@ def diagram_visualise_acp(
         y_list = [pd.array(dt_means)]
 
     else:
+        
         selectedDataOrigCountry = dataset_dt.loc[(dataset_dt['g331goodstnvedcode'].astype(str).str.lower().isin(
             [tnved_code.lower() for tnved_code in input_codes]))
         ]
+        if adding_code:
+            selectedDataOrigCountry = selectedDataOrigCountry.loc[
+                (selectedDataOrigCountry['goodsaddtnvedcode'].astype(str) == four_digit_code.lstrip('0'))]
+        else:
+            four_digit_code = ''
+
         if selectedDataOrigCountry.empty:
             raise Exception(f'Товаров по коду или типу выбранного товара нет')
 
         selectedDataOrigCountry.loc[:, 'dt_date'] = pd.to_datetime(selectedDataOrigCountry['dt_date'])
         selected_data_orig_country = selectedDataOrigCountry.loc[
-            (selectedDataOrigCountry["dt_date"] >= date_start) & (selectedDataOrigCountry["dt_date"] <= date_end)]
+            (selectedDataOrigCountry["dt_date"] >= start_date) & (selectedDataOrigCountry["dt_date"] <= end_date)]
         if selected_data_orig_country.empty:
             raise Exception(f'Товаров по коду или типу выбранного товара нет в заданном интервале нет')
         Com = Top_OriginCountry_Cost_Count1(selected_data_orig_country, input_code, threshold_value)
@@ -296,13 +347,13 @@ def diagram_visualise_acp(
             Window(
                 window_title='Топ стран-производителей',
                 canvases=[Canvas(
-                    title=f'Топ стран-производителей в количественной выборке по типу товара: {input_code}',
+                    title=f'Топ стран-производителей в количественной выборке по типу товара: {input_code} {four_digit_code}',
                     showlegend=True,
                     plots=[PiePlot(labels=count_sale['g34origincountryname'].astype('str'),
                                    values=count_sale['count'].astype('int'))]
                 ),
                     Canvas(
-                        title=f'Топ стран-производителей в стоимостной выборке по типу товара: {input_code}',
+                        title=f'Топ стран-производителей в стоимостной выборке по типу товара: {input_code} {four_digit_code}',
                         showlegend=True,
                         plots=[PiePlot(labels=cost_sale['g34origincountryname'].astype('str'),
                                        values=cost_sale['cost'].astype('int'))]
@@ -333,7 +384,7 @@ def diagram_visualise_acp(
         gui_dict['plot'].append(
             Window(
                 window_title='Гистограммы',
-                canvases=[Canvas(title=f'Средняя цена по странам-импортерам по типу товара: {input_code}',
+                canvases=[Canvas(title=f'Средняя цена по странам-импортерам по типу товара: {input_code} {four_digit_code}',
                                  showlegend=False,
                                  x_title='Страны',
                                  y_title='Цена, бел. руб',
@@ -341,7 +392,7 @@ def diagram_visualise_acp(
                                                 y=data_final['weighted_avg_cost'].values
                                                 )]
                                  ),
-                          Canvas(title=f'Средняя цена по странам-производителям по типу товара: {input_code}',
+                          Canvas(title=f'Средняя цена по странам-производителям по типу товара: {input_code} {four_digit_code}',
                                  showlegend=False,
                                  x_title='Страны',
                                  y_title='Цена, бел. руб',
@@ -356,8 +407,14 @@ def diagram_visualise_acp(
         pd.options.mode.chained_assignment = None
         dataset_dt_filtered = dataset_dt[
             (dataset_dt['g331goodstnvedcode'].astype(str).str.lower().isin([code.lower() for code in input_codes]))]
+        if adding_code:
+            dataset_dt_filtered = dataset_dt_filtered.loc[
+                (dataset_dt_filtered['goodsaddtnvedcode'].astype(str) == four_digit_code.lstrip('0'))]
+        else:
+            four_digit_code = ''
+        
         if dataset_dt_filtered.empty:
-            raise Exception(f'Нет записей по типу "{input_code}" в декларациях на товарах')
+            raise Exception(f'Нет записей по типу "{input_code} {four_digit_code}" в декларациях на товарах')
 
         dataset_dt_filtered['dt_date'] = pd.to_datetime(dataset_dt_filtered['dt_date'])
 
@@ -389,12 +446,34 @@ def diagram_visualise_acp(
         Window(
             window_title='Линейный график среднезвешенных цен',
             canvases=[Canvas(
-                title=f'Средневзвешенные цены продаж по товару {input_code} с {start_date} по {end_date}',
+                title=f'Средневзвешенные цены продаж по товару {input_code} {four_digit_code} с {start_date} по {end_date}',
                 x_title="Месяц",
                 y_title='Цена, бел. руб',
                 showlegend=True,
                 plots=plots)]
         ).to_dict()
+    )
+    gui_dict['table'].append({
+        'title': "Коды ТН ВЭД",
+        'value': {
+            'Холодильники': [str(tn_code) for tn_code in TNVED_codes['fridges']],
+            'Шины': [str(tn_code) for tn_code in TNVED_codes['tires']],
+            'Томаты': [str(tn_code) for tn_code in TNVED_codes['tomato']],
+            'Лимоны': [str(tn_code) for tn_code in TNVED_codes['lemons']],
+            'Бананы': [str(tn_code) for tn_code in TNVED_codes['banana']],
+        }
+    }
+    )
+    gui_dict['table'].append({
+        'title': "Дополнительные коды",
+        'value': {
+            'Для холодильников': [str(dop_code) for dop_code in DOP_codes['fridges']],
+            'Для шин кода ТН ВЭД: 4011100003': [str(dop_code) for dop_code in DOP_codes['tires_3']],
+            'Для шин кода ТН ВЭД: 4011100009': [str(dop_code) for dop_code in DOP_codes['tires_9']],
+            'Для томатов': [str(dop_code) for dop_code in DOP_codes['tomato']],
+            'Для лимонов': [str(dop_code) for dop_code in DOP_codes['lemons']],
+        }
+    }
     )
 
     return gui_dict, error

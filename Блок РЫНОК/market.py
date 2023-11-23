@@ -4,6 +4,7 @@ class Market_esf:
     :code_type: отрисовка BarPlot
     :packages:
     import pandas as pd
+    import numpy as np
     """
 
     def __init__(self, dt_data, first_esf_data, esf_data, last_esf_data, check_data, dt_esf, esf, checks):
@@ -42,6 +43,22 @@ class Market_esf:
         right = pd.to_datetime(right)
 
         return int((right - left).days)
+
+    def get_name_of_companies(self, codes):
+        df = self.esf.copy()
+        df['provider_name'] = df['provider_name'].astype(str)
+        df['provider_unp'] = df['provider_unp'].astype(str)
+        df['provider_unp'] = df['provider_unp'].apply(lambda x: x.rstrip('0').rstrip('.'))
+        df['provider_name'] = df['provider_name'].fillna('')
+        unique_combinations = df.groupby('provider_unp')['provider_name'].unique().reset_index()
+        names = unique_combinations[(unique_combinations['provider_unp'].isin(codes))].copy()
+        names['короткое'] = names['provider_name'].astype(str).apply(
+            lambda x: x.split('"')[-2] if '"' in str(x) else ' '.join(x.split("'")[-2].split()[-2:]) if "'" in x
+            else x.split()[-2:] if x else '')
+        names = names.sort_values(by=['provider_unp'],
+                                  key=lambda x: x.map({v: i for i, v in enumerate(codes)})).reset_index(drop=True)
+        names['УНП_names'] = names['короткое'].astype(str) + ' (' + names['provider_unp'].astype(str) + ')'
+        return names
 
     def get_statistics(self, esf_data, date_start, date_end):
         """
@@ -158,7 +175,6 @@ class Market_esf:
             percentages_buyers = (count_days_buyer / interval) * 100
             df_statistics.at[i, '% актив продаж'] = percentages_sellers
             df_statistics.at[i, '% актив покупок'] = percentages_buyers
-
         return df_statistics, avg_price_all
 
     def get_dt_means_daily(self):
@@ -301,25 +317,26 @@ class Market_esf:
 
         return esf_months, esf_means
 
-    def get_esf_means_daily(self):
+    def get_second_esf_means_daily(self):
         """
-        Функция подсчета средневзвешенного значения по всем ЭСЧФ по дням
+        Функция подсчета средневзвешенного значения по ЭСЧФ2 по дням
         """
 
         # Преобразуем поле general_date_transaction в формат даты
-        self.data_esf['general_date_transaction'] = pd.to_datetime(self.data_esf['general_date_transaction'])
+        self.data_esf['general_date_transaction'] = pd.to_datetime(
+            self.data_esf['general_date_transaction'])
 
         # Извлекаем год, месяц и день из даты
         self.data_esf['year'] = self.data_esf['general_date_transaction'].dt.year
         self.data_esf['month'] = self.data_esf['general_date_transaction'].dt.month
         self.data_esf['day'] = self.data_esf['general_date_transaction'].dt.day
-
-        # Рассчитываем сумму (продажи * цена) для каждой строки
-        self.data_esf['total_sales'] = self.data_esf['roster_item_count'] * self.data_esf['roster_item_price']
+        df_first = self.data_first_esf.copy()
+        first_esf = df_first['recipient_unp'].astype(str).unique().tolist()
+        second_esf = self.data_esf[(self.data_esf['provider_unp'].astype(str).isin(first_esf))]
 
         # Группируем данные по году и месяцу, а затем рассчитываем средневзвешенное значение
-        grouped = self.data_esf.groupby(['year', 'month', 'day']).apply(
-            lambda x: (x['total_sales']).sum() / x['roster_item_count'].sum()).reset_index()
+        grouped = second_esf.groupby(['year', 'month', 'day']).apply(
+            lambda x: (x['roster_item_cost']).sum() / x['roster_item_count'].sum()).reset_index()
         grouped.columns = ['year', 'month', 'day', 'weighted_average_price']
 
         # Возвращаем результаты в виде массивов
@@ -332,26 +349,26 @@ class Market_esf:
 
         return esf_days, esf_means
 
-    def get_esf_means_monthly(self):
+    def get_second_esf_means_monthly(self):
         """
-        Функция подсчета средневзвешенного значения по всем ЭСЧФ по месяцам
+        Функция подсчета средневзвешенного значения по ЭСЧФ2 по месяцам
         """
 
         # Преобразуем поле general_date_transaction в формат даты
-        self.data_esf['general_date_transaction'] = pd.to_datetime(self.data_esf['general_date_transaction'])
+        self.data_esf['general_date_transaction'] = pd.to_datetime(
+            self.data_esf['general_date_transaction'])
 
         # Извлекаем год и месяц из даты
         self.data_esf['year'] = self.data_esf['general_date_transaction'].dt.year
         self.data_esf['month'] = self.data_esf['general_date_transaction'].dt.month
-
-        # Рассчитываем сумму (продажи * цена) для каждой строки
-        self.data_esf['total_sales'] = self.data_esf['roster_item_count'] * self.data_esf['roster_item_price']
+        df_first = self.data_first_esf.copy()
+        first_esf = df_first['recipient_unp'].astype(str).unique().tolist()
+        second_esf = self.data_esf[(self.data_esf['provider_unp'].astype(str).isin(first_esf))]
 
         # Группируем данные по году и месяцу, а затем рассчитываем средневзвешенное значение
-        grouped = self.data_esf.groupby(['year', 'month']).apply(
-            lambda x: (x['total_sales']).sum() / x['roster_item_count'].sum()).reset_index()
+        grouped = second_esf.groupby(['year', 'month']).apply(
+            lambda x: (x['roster_item_cost']).sum() / x['roster_item_count'].sum()).reset_index()
         grouped.columns = ['year', 'month', 'weighted_average_price']
-
         # Возвращаем результаты в виде массивов
         years = grouped['year'].tolist()
         months = grouped['month'].tolist()
@@ -361,6 +378,66 @@ class Market_esf:
 
         return esf_months, esf_means
 
+    # def get_esf_means_daily(self):
+    #     """
+    #     Функция подсчета средневзвешенного значения по всем ЭСЧФ по дням
+    #     """
+    #
+    #     # Преобразуем поле general_date_transaction в формат даты
+    #     self.data_esf['general_date_transaction'] = pd.to_datetime(self.data_esf['general_date_transaction'])
+    #
+    #     # Извлекаем год, месяц и день из даты
+    #     self.data_esf['year'] = self.data_esf['general_date_transaction'].dt.year
+    #     self.data_esf['month'] = self.data_esf['general_date_transaction'].dt.month
+    #     self.data_esf['day'] = self.data_esf['general_date_transaction'].dt.day
+    #
+    #     # Рассчитываем сумму (продажи * цена) для каждой строки
+    #     self.data_esf['total_sales'] = self.data_esf['roster_item_count'] * self.data_esf['roster_item_price']
+    #
+    #     # Группируем данные по году и месяцу, а затем рассчитываем средневзвешенное значение
+    #     grouped = self.data_esf.groupby(['year', 'month', 'day']).apply(
+    #         lambda x: (x['total_sales']).sum() / x['roster_item_count'].sum()).reset_index()
+    #     grouped.columns = ['year', 'month', 'day', 'weighted_average_price']
+    #
+    #     # Возвращаем результаты в виде массивов
+    #     years = grouped['year'].tolist()
+    #     months = grouped['month'].tolist()
+    #     days = grouped['day'].tolist()
+    #     esf_means = grouped['weighted_average_price'].tolist()
+    #
+    #     esf_days = self.dates_to_days(years, months, days)
+    #
+    #     return esf_days, esf_means
+
+    # def get_esf_means_monthly(self):
+    #     """
+    #     Функция подсчета средневзвешенного значения по всем ЭСЧФ по месяцам
+    #     """
+    #
+    #     # Преобразуем поле general_date_transaction в формат даты
+    #     self.data_esf['general_date_transaction'] = pd.to_datetime(self.data_esf['general_date_transaction'])
+    #
+    #     # Извлекаем год и месяц из даты
+    #     self.data_esf['year'] = self.data_esf['general_date_transaction'].dt.year
+    #     self.data_esf['month'] = self.data_esf['general_date_transaction'].dt.month
+    #
+    #     # Рассчитываем сумму (продажи * цена) для каждой строки
+    #     self.data_esf['total_sales'] = self.data_esf['roster_item_count'] * self.data_esf['roster_item_price']
+    #
+    #     # Группируем данные по году и месяцу, а затем рассчитываем средневзвешенное значение
+    #     grouped = self.data_esf.groupby(['year', 'month']).apply(
+    #         lambda x: (x['total_sales']).sum() / x['roster_item_count'].sum()).reset_index()
+    #     grouped.columns = ['year', 'month', 'weighted_average_price']
+    #
+    #     # Возвращаем результаты в виде массивов
+    #     years = grouped['year'].tolist()
+    #     months = grouped['month'].tolist()
+    #     esf_means = grouped['weighted_average_price'].tolist()
+    #
+    #     esf_months = self.dates_to_months(years, months)
+    #
+    #     return esf_months, esf_means
+    #
     def get_last_esf_means_daily(self):
         """
         Функция подсчета средневзвешенного значения по последнему ЭСЧФ по дням
@@ -594,7 +671,6 @@ class Market_esf:
                 / sum(df_local['g38netweightquantity'])
         return price
 
-
     def filter_data(self, tnved_code, goods_name, time_start, delta_time):
         time_start = pd.to_datetime(time_start)
         time_end = time_start + pd.DateOffset(days=delta_time)
@@ -820,6 +896,11 @@ def market_esf(
     top_five_buy_count = company_stat.sort_values(by='Количество закупок', ascending=False).head(5)
     # ТОП-5 компаний по объему покупок в стоимостном выражении
     top_five_buy_cost = company_stat.sort_values(by='Стоимость закупок', ascending=False).head(5)
+    names_1 = Market.get_name_of_companies(top_five_sell_count['УНП'].astype('str').tolist())
+    names_2 = Market.get_name_of_companies(top_five_sell_cost['УНП'].astype('str').tolist())
+    names_3 = Market.get_name_of_companies(top_five_buy_count['УНП'].astype('str').tolist())
+    names_4 = Market.get_name_of_companies(top_five_buy_cost['УНП'].astype('str').tolist())
+
 
     gui_dict['plot'].append(
         Window(
@@ -828,28 +909,28 @@ def market_esf(
                 title=f'Топ 5 компаний по объёму продаж в количественном выражении по товару с кодом: {product_code} в '
                       f'интервале от {start_date_graph} до {end_date_graph}',
                 showlegend=True,
-                plots=[PiePlot(labels=top_five_sell_count['УНП'].astype('str'),
+                plots=[PiePlot(labels=names_1['УНП_names'].astype('str'),
                                values=top_five_sell_count['Количество продаж'].astype('int'))]
             ),
                 Canvas(
                     title=f'Топ 5 компаний по объёму продаж в стоимостном выражении по товару с кодом: {product_code} в '
                           f'интервале от {start_date_graph} до {end_date_graph}',
                     showlegend=True,
-                    plots=[PiePlot(labels=top_five_sell_cost['УНП'].astype('str'),
+                    plots=[PiePlot(labels=names_2['УНП_names'].astype('str'),
                                    values=top_five_sell_cost['Стоимость продаж'].astype('int'))]
                 ),
                 Canvas(
                     title=f'Топ 5 компаний по объёму покупок в количественном выражении по товару с кодом: {product_code} в '
                           f'интервале от {start_date_graph} до {end_date_graph}',
                     showlegend=True,
-                    plots=[PiePlot(labels=top_five_buy_count['УНП'].astype('str'),
+                    plots=[PiePlot(labels=names_3['УНП_names'].astype('str'),
                                    values=top_five_buy_count['Количество закупок'].astype('int'))]
                 ),
                 Canvas(
                     title=f'Топ 5 компаний по объёму покупок в стоимостном выражении по товару с кодом: {product_code} в '
                           f'интервале от {start_date_graph} до {end_date_graph}',
                     showlegend=True,
-                    plots=[PiePlot(labels=top_five_buy_cost['УНП'].astype('str'),
+                    plots=[PiePlot(labels=names_4['УНП_names'].astype('str'),
                                    values=top_five_buy_cost['Стоимость закупок'].astype('int'))]
                 )
             ]
@@ -859,14 +940,16 @@ def market_esf(
     if daily_data:
         dt_x_points, dt_y_points = Market.get_dt_means_daily()
         first_esf_x_points, first_esf_y_points = Market.get_first_esf_means_daily()
-        esf_x_points, esf_y_points = Market.get_esf_means_daily()
+        # esf_x_points, esf_y_points = Market.get_esf_means_daily()
+        second_esf_x, second_esf_y = Market.get_second_esf_means_daily()
         last_esf_x_points, last_esf_y_points = Market.get_last_esf_means_daily()
         check_x_points, check_y_points = Market.get_check_means_daily()
         caption = 'День'
     else:
         dt_x_points, dt_y_points = Market.get_dt_means_monthly()
         first_esf_x_points, first_esf_y_points = Market.get_first_esf_means_monthly()
-        esf_x_points, esf_y_points = Market.get_esf_means_monthly()
+        # esf_x_points, esf_y_points = Market.get_esf_means_monthly()
+        second_esf_x, second_esf_y = Market.get_second_esf_means_monthly()
         last_esf_x_points, last_esf_y_points = Market.get_last_esf_means_monthly()
         check_x_points, check_y_points = Market.get_check_means_monthly()
         caption = 'Месяц'
@@ -882,7 +965,8 @@ def market_esf(
                 plots=[
                     LinePlot(x=np.array(dt_x_points), y=np.array(dt_y_points), names=['ДТ']),
                     LinePlot(x=np.array(first_esf_x_points), y=np.array(first_esf_y_points), names=['ЭСЧФ1']),
-                    LinePlot(x=np.array(esf_x_points), y=np.array(esf_y_points), names=['Все ЭСЧФ']),
+                    LinePlot(x=np.array(second_esf_x), y=np.array(second_esf_y), names=['ЭСЧФ2']),
+                    # LinePlot(x=np.array(esf_x_points), y=np.array(esf_y_points), names=['Все ЭСЧФ']),
                     LinePlot(x=np.array(last_esf_x_points), y=np.array(last_esf_y_points), names=['Последняя ЭСЧФ']),
                     LinePlot(x=np.array(check_x_points), y=np.array(check_y_points), names=['Чек']),
                 ])]
@@ -949,15 +1033,18 @@ def market_esf(
             # print(f'{count} / {len(structure[chain])}')
         weighted_checks = Market.get_weighted_check(check, top_3)
         plots = []
-        node_list = ['ДТ'] + [f"Узел {i}" for i in range(1, size_chain + 1)] + ['Чек']
         for top in top_3:
             if weighted_checks[top]:
-                y = np.array([dt_weighted_points[top]] + [value[0] for key, value in weighted_points[top].items()] + [weighted_checks[top]])
-                x = np.arange(len(y))
-                plots.append(LinePlot(x=x, y=y, names=[f'Цепочка ЭСЧФ для компании: {top}']))
-                plots.append(Scatter2DPlot(x=x, y=y, names=[f'Цепочка ЭСЧФ для компании: {top}'],
-                                           text=[node_list], marker=[dict(color="black")]))
-
+                node_list = ['ДТ'] + [f"Узел {i}" for i in range(1, size_chain + 1)] + ['Чек']
+                y = np.array([dt_weighted_points[top]] + [value[0] for key, value in weighted_points[top].items()] + [
+                    weighted_checks[top]])
+            else:
+                node_list = ['ДТ'] + [f"Узел {i}" for i in range(1, size_chain + 1)]
+                y = np.array([dt_weighted_points[top]] + [value[0] for key, value in weighted_points[top].items()])
+            x = np.arange(len(y))
+            plots.append(LinePlot(x=x, y=y, names=[f'Цепочка ЭСЧФ для компании: {top}']))
+            plots.append(Scatter2DPlot(x=x, y=y, names=[f'Цепочка ЭСЧФ для компании: {top}'],
+                                       text=[node_list], marker=[dict(color="black")]))
         gui_dict['plot'].append(
             Window(
                 window_title='Цепочка ЭСЧФ',

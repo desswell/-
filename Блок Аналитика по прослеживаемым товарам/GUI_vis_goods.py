@@ -43,26 +43,6 @@
                                     'rus': False
                                 },
                         },
-                    'size_chain':
-                        {
-                            'gui_name':
-                                {
-                                    'rus': 'Размерность цепочки',
-                                },
-                            'gui_type': 'input',
-                            'gui_type_value': 'number',
-                            'gui_default_values':
-                                {
-                                    'rus': 2
-                                },
-                            'gui_visible':
-                                {
-                                    'chain_flag':
-                                        {
-                                            1: True,
-                                        },
-                                },
-                        },
                     'date_dt':
                         {
                             'gui_name':
@@ -124,6 +104,33 @@
                             'gui_default_values':
                                 {
                                     'rus': '700474487'
+                                },
+                            'gui_visible':
+                                {
+                                    'include_company':
+                                        {
+                                            1: True,
+                                        }
+                                }
+                        },
+                    'size_chain':
+                        {
+                            'gui_name':
+                                {
+                                    'rus': 'Размерность цепочки',
+                                },
+                            'gui_type': 'input',
+                            'gui_type_value': 'number',
+                            'gui_default_values':
+                                {
+                                    'rus': 2
+                                },
+                            'gui_visible':
+                                {
+                                    'chain_flag':
+                                        {
+                                            1: True,
+                                        }
                                 }
                         }
                 }
