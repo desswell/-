@@ -1,4 +1,4 @@
-class Market_ACP:
+class Market_ACP1:
     """
     :code_assign: service
     :code_type: отрисовка графиков ф-ий блока Фирма
@@ -227,7 +227,7 @@ def market_acp(
     """
     :code_assign: users
     :code_type: Пользовательские функции
-    :imports: init_gui_dict, Canvas, BarPlot, Market_ACP, Window, LinePlot
+    :imports: init_gui_dict, Canvas, BarPlot, Market_ACP1, Window, LinePlot
     :packages:
     import datetime
     import pandas as pd
@@ -248,7 +248,7 @@ def market_acp(
     # Выбор пользователем нужного графика
     gui_dict = init_gui_dict()
     error = ""
-    market = Market_ACP(dataset_dt, dataset_checks, code, company, time_start, time_end)
+    market = Market_ACP1(dataset_dt, dataset_checks, code, company, time_start, time_end)
     market.show_sells_by_dt()
     market.show_quantity_by_dt()
     market.show_sells_by_check()
@@ -263,7 +263,7 @@ def market_acp(
     """
     Вызывается ф-ия 2_6
     """
-    avg = Market_ACP(dataset_esf, dataset_checks, code, company, time_start, time_end)
+    avg = Market_ACP1(dataset_esf, dataset_checks, code, company, time_start, time_end)
     avg.csv_options()
     # sale_buy_all = avg.search_code_all_company_sale_buy()
     sale = avg.search_code_and_company_sale()
@@ -297,9 +297,6 @@ def market_acp(
     if not buy.empty:
         plots.append(LinePlot(x=np.array(buy['months']), y=buy['roster_item_price'],
                               names=['Средняя закупочная цена компании']))
-    # if not sale_buy_all.empty:
-    #     plots.append(LinePlot(x=np.array(sale_buy_all['months']), y=sale_buy_all['roster_item_price'],
-    #                           names=['Средняя закупочная/продажная цена по рынку']))
     if sale.empty and buy.empty and sale_buy_all.empty:
         pass
     else:
@@ -314,7 +311,7 @@ def market_acp(
                     plots=plots)]
             ).to_dict()
         )
-    total = Market_ACP(dataset_esf, dataset_checks, code, company, time_start, time_end)
+    total = Market_ACP1(dataset_esf, dataset_checks, code, company, time_start, time_end)
     total.csv_options()
     sale = total.search_code_and_company_sale()
     buy = total.search_code_and_company_buy()
