@@ -26,7 +26,7 @@
                                     'rus': 'Категория',
                                 },
                             'gui_type': 'input',
-                            'gui_default_values': 
+                            'gui_default_values':
                                 {
                                     'rus': "8418102001"
                                 }

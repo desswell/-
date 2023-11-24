@@ -30,7 +30,147 @@ class monthlyPrices:
                               '8418402001',
                               '8418408001']
         self.name = name
-    def get_monthly_prices(self, dataset, codes):
+
+    def get_monthly_prices_dt(self, dataset, codes):
+        """
+        Функция подсчета средневзвешенного
+        """
+        np.set_printoptions(linewidth=np.inf)
+
+        # Чтение всех значений кодов из CSV
+        code_arr_all = dataset['itemcustomcode'].tolist()
+        month_arr_all = dataset['МЕСЯЦ'].tolist()
+        year_arr_all = dataset['ГОД'].tolist()
+        price_arr_all = dataset['ТС/доп, бел руб'].tolist()
+        count_arr_all = dataset['g41goodsquantity'].tolist()
+
+        """
+        Объединение данных по кодам
+        """
+
+        # Создаем словарь для хранения данных
+        combined_data = {}
+
+        for i in range(len(code_arr_all)):
+            code = code_arr_all[i]
+            month = month_arr_all[i]
+            year = year_arr_all[i]
+            price = price_arr_all[i]
+            count = count_arr_all[i]
+
+            if code not in combined_data:
+                combined_data[code] = {'month': [], 'year': [], 'price': [], 'count': []}
+
+            combined_data[code]['month'].extend([month])
+            combined_data[code]['year'].extend([year])
+            combined_data[code]['price'].extend([price])
+            combined_data[code]['count'].extend([count])
+
+        # Преобразуем словарь обратно в списки
+        code_arr_all = list(combined_data.keys())
+        month_arr_all = [combined_data[code]['month'] for code in code_arr_all]
+        year_arr_all = [combined_data[code]['year'] for code in code_arr_all]
+        price_arr_all = [combined_data[code]['price'] for code in code_arr_all]
+        count_arr_all = [combined_data[code]['count'] for code in code_arr_all]
+
+        code_arr = []
+        month_arr = []
+        year_arr = []
+        price_arr = []
+        count_arr = []
+
+        for i in range(len(code_arr_all)):
+            if (str(code_arr_all[i]) in codes):
+                code_arr.append(str(code_arr_all[i]))
+                month_arr.append(month_arr_all[i])
+                year_arr.append(year_arr_all[i])
+                price_arr.append(price_arr_all[i])
+                count_arr.append(count_arr_all[i])
+
+        """
+        Подсчет средневзвешенного значения
+        """
+        av_price_arr = []
+        av_year_arr = []
+        av_month_arr = []
+
+        # Подсчет средневзвешенных значений по месяцам
+        for i in range(len(year_arr)):
+            # Создаем словарь для хранения данных
+            sales_data = {}
+
+            for j in range(len(year_arr[i])):
+                year = year_arr[i][j]
+                month = month_arr[i][j]
+                price = float(price_arr[i][j])
+                count = float(count_arr[i][j])
+
+                if (year, month) not in sales_data:
+                    sales_data[(year, month)] = {'total_price': 0, 'count': 0}
+
+                sales_data[(year, month)]['total_price'] += price * count
+                sales_data[(year, month)]['count'] += count
+
+            # Вычисляем средние значения
+            av_price = []
+            av_year = []
+            av_month = []
+
+            for (year, month), dataset in sales_data.items():
+                avg_price = dataset['total_price'] / dataset['count']
+                av_price.append(round(avg_price, 4))
+                av_year.append(year)
+                av_month.append(month)
+
+            av_price_arr.append(av_price)
+            av_year_arr.append(av_year)
+            av_month_arr.append(av_month)
+
+        """
+        Сортировка значений в хронологическом порядке
+        """
+        sorted_year_arr = []
+        sorted_months_arr = []
+        sorted_prices_arr = []
+
+        if len(av_price_arr) > 0:
+            if len(av_price_arr[0]) > 0:
+                for i in range(len(code_arr)):
+                    # Объединяем все данные в один список кортежей
+                    combined_data = list(zip(av_year_arr[i], av_month_arr[i], av_price_arr[i]))
+
+                    # Сортируем данные по году и месяцу
+                    sorted_data = sorted(combined_data, key=lambda x: (x[0], x[1]))
+
+                    # Разделяем данные обратно в списки
+                    sorted_years, sorted_months, sorted_prices = zip(*sorted_data)
+
+                    sorted_year_arr.append(sorted_years)
+                    sorted_months_arr.append(sorted_months)
+                    sorted_prices_arr.append(sorted_prices)
+
+                # Преобразуем данные в NumPy Array
+                for i in range(len(sorted_months_arr)):
+                    sorted_months_arr[i] = np.array(sorted_months_arr[i])
+                    sorted_year_arr[i] = np.array(sorted_year_arr[i])
+                    sorted_prices_arr[i] = np.array(sorted_prices_arr[i])
+
+                # Поиск минимального года
+                min_year = sorted_year_arr[0][0]
+                for i in range(len(sorted_year_arr)):
+                    for j in range(len(sorted_year_arr[i])):
+                        if sorted_year_arr[i][j] < min_year:
+                            min_year = sorted_year_arr[i][j]
+
+                # Замена значений месяцев в соответствии с годом
+                for i in range(len(sorted_months_arr)):
+                    for j in range(len(sorted_months_arr[i])):
+                        if sorted_year_arr[i][j] > min_year:
+                            sorted_months_arr[i][j] = sorted_months_arr[i][j] + 12 * (sorted_year_arr[i][j] - min_year)
+
+        return code_arr, sorted_months_arr, sorted_year_arr, sorted_prices_arr
+
+    def get_monthly_prices_etn(self, dataset, codes):
         """
         Функция подсчета средневзвешенного
         """
@@ -115,26 +255,143 @@ class monthlyPrices:
                 count_arr.append(count_arr_all[i])
 
         """
-        Добавляем записи по товарам без учета кода
+        Подсчет средневзвешенного значения
         """
-        # flattened_month_arr = []
-        # flattened_year_arr = []
-        # flattened_price_arr = []
-        # flattened_count_arr = []
-        # for sublist in month_arr:
-        #     flattened_month_arr.extend(sublist)
-        # for sublist in year_arr:
-        #     flattened_year_arr.extend(sublist)
-        # for sublist in price_arr:
-        #     flattened_price_arr.extend(sublist)
-        # for sublist in count_arr:
-        #     flattened_count_arr.extend(sublist)
-        #
-        # code_arr.append('All_' + self.name)
-        # month_arr.append(flattened_month_arr)
-        # year_arr.append(flattened_year_arr)
-        # price_arr.append(flattened_price_arr)
-        # count_arr.append(flattened_count_arr)
+        av_price_arr = []
+        av_year_arr = []
+        av_month_arr = []
+
+        # Подсчет средневзвешенных значений по месяцам
+        for i in range(len(year_arr)):
+            # Создаем словарь для хранения данных
+            sales_data = {}
+
+            for j in range(len(year_arr[i])):
+                year = year_arr[i][j]
+                month = month_arr[i][j]
+                price = price_arr[i][j]
+                count = count_arr[i][j]
+
+                if (year, month) not in sales_data:
+                    sales_data[(year, month)] = {'total_price': 0, 'count': 0}
+
+                sales_data[(year, month)]['total_price'] += price * count
+                sales_data[(year, month)]['count'] += count
+
+            # Вычисляем средние значения
+            av_price = []
+            av_year = []
+            av_month = []
+
+            for (year, month), dataset in sales_data.items():
+                avg_price = dataset['total_price'] / dataset['count']
+                av_price.append(round(avg_price, 4))
+                av_year.append(year)
+                av_month.append(month)
+
+            av_price_arr.append(av_price)
+            av_year_arr.append(av_year)
+            av_month_arr.append(av_month)
+
+        """
+        Сортировка значений в хронологическом порядке
+        """
+        sorted_year_arr = []
+        sorted_months_arr = []
+        sorted_prices_arr = []
+
+        if len(av_price_arr) > 0:
+            if len(av_price_arr[0]) > 0:
+                for i in range(len(code_arr)):
+                    # Объединяем все данные в один список кортежей
+                    combined_data = list(zip(av_year_arr[i], av_month_arr[i], av_price_arr[i]))
+
+                    # Сортируем данные по году и месяцу
+                    sorted_data = sorted(combined_data, key=lambda x: (x[0], x[1]))
+
+                    # Разделяем данные обратно в списки
+                    sorted_years, sorted_months, sorted_prices = zip(*sorted_data)
+
+                    sorted_year_arr.append(sorted_years)
+                    sorted_months_arr.append(sorted_months)
+                    sorted_prices_arr.append(sorted_prices)
+
+                # Преобразуем данные в NumPy Array
+                for i in range(len(sorted_months_arr)):
+                    sorted_months_arr[i] = np.array(sorted_months_arr[i])
+                    sorted_year_arr[i] = np.array(sorted_year_arr[i])
+                    sorted_prices_arr[i] = np.array(sorted_prices_arr[i])
+
+                # Поиск минимального года
+                min_year = sorted_year_arr[0][0]
+                for i in range(len(sorted_year_arr)):
+                    for j in range(len(sorted_year_arr[i])):
+                        if sorted_year_arr[i][j] < min_year:
+                            min_year = sorted_year_arr[i][j]
+
+                # Замена значений месяцев в соответствии с годом
+                for i in range(len(sorted_months_arr)):
+                    for j in range(len(sorted_months_arr[i])):
+                        if sorted_year_arr[i][j] > min_year:
+                            sorted_months_arr[i][j] = sorted_months_arr[i][j] + 12 * (sorted_year_arr[i][j] - min_year)
+
+        return code_arr, sorted_months_arr, sorted_year_arr, sorted_prices_arr
+
+    def get_monthly_prices_check(self, dataset, codes):
+        """
+        Функция подсчета средневзвешенного
+        """
+        np.set_printoptions(linewidth=np.inf)
+
+        # Чтение всех значений кодов из CSV
+        code_arr_all = dataset['itemcustomcode'].tolist()
+        month_arr_all = dataset['month_check'].tolist()
+        year_arr_all = dataset['year_check'].tolist()
+        price_arr_all = dataset['price'].tolist()
+        count_arr_all = dataset['position_count'].tolist()
+
+        """
+        Объединение данных по кодам
+        """
+
+        # Создаем словарь для хранения данных
+        combined_data = {}
+
+        for i in range(len(code_arr_all)):
+            code = code_arr_all[i]
+            month = month_arr_all[i]
+            year = year_arr_all[i]
+            price = price_arr_all[i]
+            count = count_arr_all[i]
+
+            if code not in combined_data:
+                combined_data[code] = {'month': [], 'year': [], 'price': [], 'count': []}
+
+            combined_data[code]['month'].extend([month])
+            combined_data[code]['year'].extend([year])
+            combined_data[code]['price'].extend([price])
+            combined_data[code]['count'].extend([count])
+
+        # Преобразуем словарь обратно в списки
+        code_arr_all = list(combined_data.keys())
+        month_arr_all = [combined_data[code]['month'] for code in code_arr_all]
+        year_arr_all = [combined_data[code]['year'] for code in code_arr_all]
+        price_arr_all = [combined_data[code]['price'] for code in code_arr_all]
+        count_arr_all = [combined_data[code]['count'] for code in code_arr_all]
+
+        code_arr = []
+        month_arr = []
+        year_arr = []
+        price_arr = []
+        count_arr = []
+
+        for i in range(len(code_arr_all)):
+            if (str(code_arr_all[i]) in codes):
+                code_arr.append(str(code_arr_all[i]))
+                month_arr.append(month_arr_all[i])
+                year_arr.append(year_arr_all[i])
+                price_arr.append(price_arr_all[i])
+                count_arr.append(count_arr_all[i])
 
         """
         Подсчет средневзвешенного значения
@@ -452,7 +709,6 @@ class Chain:
 
         for i, code in enumerate(icc):
             if str(code) in target_codes and len(months[i]) == target_size + 2:
-                print(0)
                 filtered_months.append(months[i])
                 filtered_prices.append(prices[i])
                 filtered_nums.append(nums[i])
@@ -684,9 +940,13 @@ def monthly_prices_visualise(
 
     canvases = []
     if not dataset.empty:
-        code_arr_t, sorted_months_arr_t, sorted_year_arr_t, sorted_prices_arr_t = MP.get_monthly_prices(dataset,
+        code_arr_t_dt, sorted_months_arr_t_dt, sorted_year_arr_t_dt, sorted_prices_arr_t_dt = MP.get_monthly_prices_dt(dataset,
                                                                                                         codes)
-        for price, month, code, years in zip(sorted_prices_arr_t, sorted_months_arr_t, code_arr_t, sorted_year_arr_t):
+        code_arr_t_etn, sorted_months_arr_t_etn, sorted_year_arr_t_etn, sorted_prices_arr_t_etn = MP.get_monthly_prices_etn(dataset,
+                                                                                                        codes)
+        code_arr_t_check, sorted_months_arr_t_check, sorted_year_arr_t_check, sorted_prices_arr_t_check = MP.get_monthly_prices_check(dataset,
+                                                                                                        codes)
+        for price, month, code, years in zip(sorted_prices_arr_t_dt, sorted_months_arr_t_dt, code_arr_t_dt, sorted_year_arr_t_dt):
             plots = []
             x = []
             y = []
@@ -702,13 +962,61 @@ def monthly_prices_visualise(
                     y.append(price[i])
                 plots.append(LinePlot(x=np.array(x), y=np.array(y), names=[f'Год {year}']))
             canvases.append(
-                Canvas(title=f'Код {code}',
+                Canvas(title=f'Средневзвешенные цены в ДТ по коду {code}',
                        x_title='Месяц',
                        y_title='Цена, бел. руб',
                        showlegend=True,
                        plots=plots
                        )
             )
+
+        for price, month, code, years in zip(sorted_prices_arr_t_etn, sorted_months_arr_t_etn, code_arr_t_etn, sorted_year_arr_t_etn):
+            plots = []
+            x = []
+            y = []
+            for year in sorted(list(set(years))):
+                if plots:
+                    x = [x[-1]]
+                    y = [y[-1]]
+                else:
+                    x = []
+                    y = []
+                for i in [j for j in range(len(years)) if years[j] == year]:
+                    x.append(month[i])
+                    y.append(price[i])
+                plots.append(LinePlot(x=np.array(x), y=np.array(y), names=[f'Год {year}']))
+            canvases.append(
+                Canvas(title=f'Средневзвешенные цены в ЕТТН по коду {code}',
+                       x_title='Месяц',
+                       y_title='Цена, бел. руб',
+                       showlegend=True,
+                       plots=plots
+                       )
+            )
+            for price, month, code, years in zip(sorted_prices_arr_t_check, sorted_months_arr_t_check, code_arr_t_check,
+                                                 sorted_year_arr_t_check):
+                plots = []
+                x = []
+                y = []
+                for year in sorted(list(set(years))):
+                    if plots:
+                        x = [x[-1]]
+                        y = [y[-1]]
+                    else:
+                        x = []
+                        y = []
+                    for i in [j for j in range(len(years)) if years[j] == year]:
+                        x.append(month[i])
+                        y.append(price[i])
+                    plots.append(LinePlot(x=np.array(x), y=np.array(y), names=[f'Год {year}']))
+                canvases.append(
+                    Canvas(title=f'Средневзвешенные цены в чеках по коду {code}',
+                           x_title='Месяц',
+                           y_title='Цена, бел. руб',
+                           showlegend=True,
+                           plots=plots
+                           )
+                )
     else:
         plots = []
         canvases.append(
@@ -761,19 +1069,3 @@ def monthly_prices_visualise(
         )
 
     return gui_dict, error
-
-
-# Чтение файла
-filename = 'test_view_10000.csv'
-
-dataset = pd.read_csv(filename)
-input_code = 'Холодильники'    # Код itemcustomcode
-chain_flag = True
-date_dt = '2022-08-01'
-date_check = '2022-11-12'
-all_interval = False
-include_company = True
-company_unp = '700474487'
-size_chain = 2             # Длина цепочки
-
-error = monthly_prices_visualise(dataset, input_code, chain_flag, date_dt, date_check, all_interval, include_company, company_unp, size_chain)
