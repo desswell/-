@@ -297,7 +297,7 @@ def market_acp(
     if not buy.empty:
         plots.append(LinePlot(x=np.array(buy['months']), y=buy['roster_item_price'],
                               names=['Средняя закупочная цена компании']))
-    if sale.empty and buy.empty and sale_buy_all.empty:
+    if sale.empty and buy.empty:
         pass
     else:
         gui_dict['plot'].append(

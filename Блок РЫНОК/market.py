@@ -868,23 +868,26 @@ def market_esf(
 
     # ТОП-5 компаний по разнице sell-buy
     top_five_sell_buy = company_stat.sort_values(by='Отношение', ascending=False).head(5)
+    names0 = Market.get_name_of_companies(top_five_sell_buy['УНП'].astype('str').tolist())
 
     gui_dict['plot'].append(
         Window(
             window_title='Топ-5 фирм по наибольшей дельте цены продажи и покупки',
-            canvases=[Canvas(
-                title=f'Средневзвешенные цены покупок и продаж {product_code} с {start_date_graph} по {end_date_graph}',
-                x_title='УНП компании',
-                y_title='Цена, бел. рубли',
-                showlegend=True,
-                plots=[
-                    BarPlot(x=np.array(top_five_sell_buy['УНП']), y=np.array(top_five_sell_buy['Ср.вз. цена продажи']),
-                            names=['Цена продажи']),
-                    BarPlot(x=np.array(top_five_sell_buy['УНП']), y=np.array(top_five_sell_buy['Ср.вз. цена покупки']),
-                            names=['Цена покупки']),
-                    LinePlot(x=np.array(top_five_sell_buy['УНП']), y=np.array(avg_price_arr),
-                             names=['Ср.вз. цена продажи по рынку'])
-                ])]
+            canvases=[
+               Canvas(
+                    title=f'Средневзвешенные цены покупок и продаж {product_code} с {start_date_graph} по {end_date_graph}',
+                    x_title='Наименование компании',
+                    y_title='Цена, бел. рубли',
+                    showlegend=True,
+                    plots=[
+                        BarPlot(x=np.array(names0['УНП_names']), y=np.array(top_five_sell_buy['Ср.вз. цена продажи']),
+                                names=['Цена продажи']),
+                        BarPlot(x=np.array(names0['УНП_names']), y=np.array(top_five_sell_buy['Ср.вз. цена покупки']),
+                                names=['Цена покупки']),
+                        LinePlot(x=np.array(names0['УНП_names']), y=np.array(avg_price_arr),
+                                 names=['Ср.вз. цена продажи по рынку'])
+                    ])
+            ]
         ).to_dict()
     )
 
