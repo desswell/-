@@ -50,8 +50,15 @@ class Market_esf:
         df['provider_unp'] = df['provider_unp'].astype(str)
         df['provider_unp'] = df['provider_unp'].apply(lambda x: x.rstrip('0').rstrip('.'))
         df['provider_name'] = df['provider_name'].fillna('')
+        df['recipient_unp'] = df['recipient_unp'].astype(str)
+        df['recipient_unp'] = df['recipient_unp'].apply(lambda x: x.rstrip('0').rstrip('.'))
+        df['recipient_name'] = df['recipient_name'].fillna('')
         unique_combinations = df.groupby('provider_unp')['provider_name'].unique().reset_index()
-        names = unique_combinations[(unique_combinations['provider_unp'].isin(codes))].copy()
+        recipient_names = df.groupby('recipient_unp')['recipient_name'].unique().reset_index()
+        recipient_names = recipient_names.rename(columns={'recipient_unp': 'provider_unp'})
+        result_df = pd.concat([unique_combinations, recipient_names], ignore_index=True)
+        result_df = result_df.unique().reset_index()
+        names = result_df[(result_df['provider_unp'].isin(codes))].copy()
         names['короткое'] = names['provider_name'].astype(str).apply(
             lambda x: x.split('"')[-2] if '"' in str(x) else ' '.join(x.split("'")[-2].split()[-2:]) if "'" in x
             else x.split()[-2:] if x else '')
